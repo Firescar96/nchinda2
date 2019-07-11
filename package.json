@@ -9,7 +9,10 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
-    "vue": "^2.6.10"
+    "showdown": "^1.9.0",
+    "vue": "^2.6.10",
+    "vue-class-component": "^7.1.0",
+    "vue-router": "^3.0.7"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.9.0",
