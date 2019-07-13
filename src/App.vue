@@ -1,22 +1,69 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <nav>
+      <div>
+        <router-link id="snowflakeLink" to="/snowflake">
+          Snowflake
+        </router-link>
+      </div>
+      <div>
+        <router-link id="pebblesLink" to="/pebbles">
+          Pebbles
+        </router-link>
+      </div>
+      <div>
+        <router-link id="firescarLink" to="/firescar">
+          Firescar
+        </router-link>
+      </div>
+      <div>
+        <router-link id="bubblesLink" to="/bubbles">
+          Bubbles
+        </router-link>
+      </div>
+    </nav>
+    <router-view class="main" />
   </div>
 </template>
 
-<script>
-export default {
-  name: "app",
-};
-</script>
+<style lang="scss">
+html, body {
+  margin: 0;
+}
 
-<style>
 #app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+
+  nav {
+    display: flex;
+    justify-content: space-evenly;
+    background: black;
+    font-size: 30px;
+
+    a {
+      text-decoration: none;
+    }
+    #snowflakeLink {
+      color: white;
+    }
+    #pebblesLink {
+      color: green;
+    }
+    #bubblesLink {
+      color: blue;
+    }
+    #firescarLink {
+      color: red;
+    }
+  }
+
+  .main {
+    width: 100vw;
+    flex: 1;
+  }
 }
 </style>

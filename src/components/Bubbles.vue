@@ -1,37 +1,65 @@
 <template>
-  <div>
-    <div>
-      Bubbles
-      music
-      charity
-      favorite shows
+  <div id="bubblesPage">
+    <div>Bubbles</div>
+
+    <div v-for="(post, index) in posts" :key="index" class="postSummary">
+      <div class="link" @click="selectedPost=post" v-html="post.title" />
+      <div v-html="post.date" />
+    </div>
+
+    <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
+      <div class="back" @click="selectedPost=null">
+        ←
+      </div>
+      <div id="postContent" ref="postContent">
+        <div ref="generatedText" v-html="selectedPost.fullText" />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import Component from 'vue-class-component';
+import { parseMarkdown } from '../utils';
 
+const NUM_POSTS = 1;
 export default
 @Component()
 class Welcome {
-  mounted() {
-    
+  data() {
+    return {
+      posts: [],
+      selectedPost: null,
+    };
   }
 
-  created() {
+  mounted() {}
 
+  async created() {
+    let posts = [];
+    for(let i = NUM_POSTS; i > 0; i--) {
+      posts.push(fetch(`/static/bubbles/${i}.md`));
+    }
+    posts = await Promise.all(posts);
+    posts = posts.map(async post => post.text());
+    posts = await Promise.all(posts);
+    posts = posts.map(post => parseMarkdown(post));
+
+    this.posts = posts;
   }
-};
+}
 </script>
-<style>
-nav {
-  height: 20px;
-  display: flex;
-  flex-direction: row;
+<style lang="scss">
+@font-face {
+    font-family: "IndieFlower";
+    src: url("../../static/fonts/Indie_Flower/IndieFlower-Regular.ttf");
+}
 
-  div {
-    flex: 1;
+#bubblesPage {
+  font-family: IndieFlower;
+
+  .postSummary {
+    text-align: left;
   }
 }
 </style>
