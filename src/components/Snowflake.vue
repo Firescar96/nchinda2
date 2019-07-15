@@ -27,7 +27,7 @@
 <script>
 import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
-import { parseMarkdown } from '../utils';
+import marked from 'marked';
 
 const NUM_POSTS = 1;
 export default
@@ -64,8 +64,23 @@ class Welcome {
     posts = await Promise.all(posts);
     posts = posts.map(async post => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map(post => parseMarkdown(post));
-    //[this.selectedPost] = posts;
+    posts = posts.map((post) => {
+      const tokens = marked.lexer(post);
+      let title = tokens.find(x => x.type === 'heading');
+      let [date] = tokens.filter(x => x.type === 'paragraph');
+
+      [title, date] = [title, date].map((_raw) => {
+        const raw = [_raw];
+        raw.links = {};
+        return marked.parser(raw);
+      });
+
+      const fullText = marked(post);
+      return {
+        title, date, fullText,
+      };
+    });
+
     this.posts = posts;
   }
 }
@@ -111,6 +126,7 @@ class Welcome {
     width: 100vw;
     height: 100vh;
     background-image: url('../../static/images/snowflake-paper.jpg');
+    z-index: 1000;
 
     .back {
       position: absolute;
@@ -206,7 +222,7 @@ class Welcome {
       transform: translateY(-80px);
     }
 
-    @-webkit-keyframes fallingSnow {
+    @keyframes fallingSnow {
       0% {
         opacity: 1;
 

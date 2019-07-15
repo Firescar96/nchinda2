@@ -18,7 +18,13 @@
         ←
       </div>
       <div id="postContent" ref="postContent">
+        <span class="termUser">firecar96@comsat1</span>
+        <span class="termDir">~/public</span> $ cat posts/{{ selectedPost.index }}.md
         <div ref="generatedText" v-html="selectedPost.fullText" />
+        <br>
+        <span class="termUser">firecar96@comsat1</span>
+        <span class="termDir">~/public</span> $
+        <span class="cursor" />
       </div>
     </div>
   </div>
@@ -26,7 +32,7 @@
 
 <script>
 import Component from 'vue-class-component';
-import { parseMarkdown } from '../utils';
+import marked from 'marked';
 
 const NUM_POSTS = 1;
 export default
@@ -36,7 +42,7 @@ class Welcome {
     return {
       posts: [],
       selectedPost: null,
-      lavaballs: new Array(30),
+      lavaballs: new Array(15),
     };
   }
 
@@ -48,8 +54,24 @@ class Welcome {
     posts = await Promise.all(posts);
     posts = posts.map(async post => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map(post => parseMarkdown(post));
+    posts = posts.map((post) => {
+      const tokens = marked.lexer(post);
+      let [title, date] = tokens.splice(0, 2);
 
+      [title, date] = [title, date].map((_raw) => {
+        const raw = [_raw];
+        raw.links = {};
+        return marked.parser(raw);
+      });
+
+      const fullText = marked.parser(tokens);
+
+      return {
+        title, date, fullText,
+      };
+    });
+
+    posts.forEach((post, index) => { post.index = index + 1; });
     this.posts = posts;
   }
 }
@@ -66,7 +88,7 @@ class Welcome {
 
   $fireSize: 800;
   $burnSize: 200;
-  $burnCount: 30;
+  $burnCount: 15;
 
   #lavalamp {
     position: absolute;
@@ -79,7 +101,6 @@ class Welcome {
       position: relative;
       width: #{$fireSize}px;
       height: #{$fireSize}px;
-      background: #ff9900;
       filter: blur(20px) contrast(5);
       border: #{$fireSize/2}px solid #000;
       border-bottom-color: transparent;
@@ -109,35 +130,35 @@ class Welcome {
         }
       }
     }
-  }
 
-  @keyframes burning {
-    0% {
-      transform: translateY(-300px);
+    @keyframes burning {
+      0% {
+        transform: translateY(-300px);
+      }
+      100% {
+        transform: translateY(-#{$fireSize+$burnSize}px);
+      }
     }
-    100% {
-      transform: translateY(-#{$fireSize+$burnSize}px);
-    }
-  }
 
-  @keyframes lavashade {
-    0% {
-      background: #ff9900;
-    }
-    5% {
-      background: #ff9900;
-    }
-    45% {
-      background: #9600ff;
-    }
-    55% {
-      background: #9600ff;
-    }
-    95% {
-      background: #ff9900;
-    }
-    100% {
-      background: #ff9900;
+    @keyframes lavashade {
+      0% {
+        background: #ff9900;
+      }
+      5% {
+        background: #ff9900;
+      }
+      45% {
+        background: #9600ff;
+      }
+      55% {
+        background: #9600ff;
+      }
+      95% {
+        background: #ff9900;
+      }
+      100% {
+        background: #ff9900;
+      }
     }
   }
 
@@ -146,6 +167,85 @@ class Welcome {
     color: white;
     width: 500px;
     text-align: left;
+
+    .link {
+      cursor:grab;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  #selectedPost {
+    position: absolute;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    color: white;
+    background: black;
+    z-index: 1000;
+    font-size: 22px;
+
+    .back {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      font-size: 80px;
+      cursor: grab;
+    }
+
+    #postContent {
+      margin: 50px auto 0 auto;
+      max-width: 960px;
+      width: 80%;
+      text-align: left;
+
+      .termUser {
+        color: #00AA00;
+      }
+
+      .termDir {
+        color: #5555FF;
+      }
+
+      p, li {
+        margin: 0;
+        line-height: 30px;
+        white-space: pre;
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style-position: inside;
+        list-style-type: none;
+
+        li {
+          padding-left: 40px;
+
+          &:before {
+            content: "-";
+            margin-right: 5px;
+          }
+        }
+      }
+
+
+      .cursor {
+        height: 12px;
+        width: 10px;
+        background: white;
+        display: inline-block;
+        animation: blinker 2s infinite ease-in-out;
+      }
+
+      @keyframes blinker {
+        50% {
+          opacity: 0;
+        }
+      }
+    }
   }
 }
 </style>

@@ -43,6 +43,7 @@ html, body {
     justify-content: space-evenly;
     background: black;
     font-size: 30px;
+    z-index: 100;
 
     a {
       text-decoration: none;

@@ -5,6 +5,7 @@ marked.setOptions({
   gfm: true,
   headerIds: false,
 });
+export { marked };
 
 export function parseMarkdown(markdown) {
   //extract tokens which are needed for the summary display
