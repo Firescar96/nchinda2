@@ -6,7 +6,6 @@
     <div id="fallingSnow">
       <span v-for="i in snowflakes" :key="i" />
     </div>
-    <div>Snowflake69</div>
 
     <div v-for="(post, index) in posts" :key="index" class="postSummary">
       <div class="link" @click="selectedPost=post" v-html="post.title" />
@@ -64,7 +63,11 @@ class Welcome {
     posts = await Promise.all(posts);
     posts = posts.map(async post => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map((post) => {
+    posts = posts.map((_post) => {
+      //my quirk
+      const post = _post.replace(/o|O/g, '&ast;');
+      console.log(post);
+
       const tokens = marked.lexer(post);
       let title = tokens.find(x => x.type === 'heading');
       let [date] = tokens.filter(x => x.type === 'paragraph');
@@ -125,7 +128,7 @@ class Welcome {
     top: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url('../../static/images/snowflake-paper.jpg');
+    background: snow;
     z-index: 1000;
 
     .back {
@@ -146,7 +149,7 @@ class Welcome {
 
       p, li {
         margin: 0;
-        border-bottom: solid 2px black;
+        border-bottom: solid 1px black;
         line-height: 40px;
         padding: 5px;
 
@@ -217,7 +220,6 @@ class Welcome {
       height: 30px;
       background-size: cover;
       background-image:url("../../static/images/snowflake.png");
-
       animation: fallingSnow 12s infinite linear;
       transform: translateY(-80px);
     }

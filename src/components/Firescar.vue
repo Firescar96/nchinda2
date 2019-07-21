@@ -1,6 +1,5 @@
 <template>
   <div id="firescarPage">
-    <div>Firescar96</div>
     <div id="lavalamp">
       <div class="fire">
         <div v-for="ball in lavaballs" :key="ball" class="burn" />

@@ -1,7 +1,5 @@
 <template>
   <div id="pebblesPage">
-    <div>Pebbles</div>
-
     <div v-for="(post, index) in posts" :key="index" class="postSummary">
       <div class="link" @click="selectedPost=post" v-html="post.title" />
       <div v-html="post.date" />

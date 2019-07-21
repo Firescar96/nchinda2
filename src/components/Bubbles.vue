@@ -1,32 +1,55 @@
 <template>
   <div id="bubblesPage">
-    <div>Bubbles</div>
+    <div id="cloudsContainer">
+      <video autoplay loop>
+        <!-- original video taken from https://www.youtube.com/watch?v=dRLB1ScXbEA -->
+        <source src="/static/videos/clouds-5m.webm" type="video/webm"></source>
+      </video>
+    </div>
 
-    - var parts = 50;
-    .fire
-    - while (parts--) {
-    .particle
-    - }
+    <svg v-show="!selectedPost" id="bubblesGraphic" />
 
-    <div v-for="(post, index) in posts" :key="index" class="postSummary">
+    <div v-for="(post, index) in posts" v-show="!selectedPost" :key="index" class="postSummary">
       <div class="link" @click="selectedPost=post" v-html="post.title" />
       <div v-html="post.date" />
     </div>
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
-      <div class="back" @click="selectedPost=null">
-        ←
-      </div>
       <div id="postContent" ref="postContent">
-        <div ref="generatedText" v-html="selectedPost.fullText" />
+        <div id="messageBody">
+          <div ref="generatedText" v-html="selectedPost.fullText" />
+        </div>
+        <div class="divider" />
+        <div id="shippingBody">
+          <div class="back" @click="selectedPost=null">
+            X
+          </div>
+          <div id="stamp">
+            <img src="/static/images/mexican-postage.jpg">
+          </div>
+
+          <div id="address">
+            <p>3rd and Breath</p>
+            <p>Black Rock City, Nevada</p>
+            <p>United States</p>
+          </div>
+        </div>
       </div>
     </div>
+    </video>
   </div>
 </template>
 
 <script>
 import Component from 'vue-class-component';
+import {
+  select, interval, forceSimulation, forceY,
+} from 'd3';
 import { parseMarkdown } from '../utils';
+
+//this way bubble is only imported once via one network request
+import bubbleImg from '@/../static/images/bubble.png';
+
 
 const NUM_POSTS = 1;
 export default
@@ -36,10 +59,11 @@ class Welcome {
     return {
       posts: [],
       selectedPost: null,
+      bubbles: [],
+      simulation: null,
+      bubbleGenerator: null,
     };
   }
-
-  mounted() {}
 
   async created() {
     let posts = [];
@@ -52,6 +76,92 @@ class Welcome {
     posts = posts.map(post => parseMarkdown(post));
 
     this.posts = posts;
+    [this.selectedPost] = this.posts;
+  }
+
+  generateUUID() {
+    return '66-6-6-6-666'.replace(/6/g, _ => (`${Math.random().toString(16)}00000`).slice(2, 6));
+  }
+
+  updateGraphic() {
+    this.simulation.nodes(this.bubbles);
+
+    const nodes = select('svg')
+      .selectAll('g.bubble')
+      .data(this.bubbles);
+    nodes.exit().remove();
+
+    const nodeEnter = nodes.enter()
+      .append('svg:g')
+      .attr('class', 'bubble')
+      .attr('transform', d => `translate(${d.x},${d.y})`);
+    nodeEnter
+      .append('circle')
+      .attr('fill', 'transparent')
+      .attr('r', d => d.r);
+    nodeEnter
+      .append('svg:image')
+      .attr('xlink:href', bubbleImg)
+      .attr('x', -25)
+      .attr('y', -25)
+      .attr('height', 50)
+      .attr('width', 50);
+  }
+
+  mounted() {
+    if(this.bubbleGenerator) return;
+    this.simulation = forceSimulation(this.bubbles);
+    this.bubbleGenerator = interval(() => {
+      this.bubbles.push({
+        id: this.generateUUID(),
+        updateTime: Date.now(),
+        x: -50,
+        y: window.innerHeight,
+        r: 15,
+        vx: Math.random() * 0.7 + 0.2,
+        vy: -(0.3),
+      });
+      this.updateGraphic();
+    }, 300);
+
+    this.simulation
+      .alpha(1)
+      .alphaTarget(1)
+      .velocityDecay(0)
+      .force('boyancy', forceY(-100).strength(0.00001))
+      .force('source', (a, b) => {
+        this.bubbles.forEach((bubble) => {
+          //loose model for friction, does not go negative cause that would be bad
+          bubble.vx = Math.max(bubble.vx - 0.006 * Math.sqrt(bubble.vx), 0.0000001);
+          //the wind
+          bubble.vx += 0.001;
+          bubble.x += bubble.vx * (Date.now() - bubble.updateTime);
+          bubble.y += bubble.vy;
+          bubble.updateTime = Date.now();
+        });
+      })
+      .on('tick', () => {
+        select('svg')
+          .selectAll('g.bubble')
+          .attr('transform', d => `translate(${d.x},${d.y})`);
+
+        for(let i = this.bubbles.length - 1; i >= 0; i--) {
+          if(this.bubbles[i].x > window.innerWidth + 50 || this.bubbles[i].y < 0) {
+            this.bubbles.splice(i, 1);
+            this.updateGraphic();
+          }
+        }
+      });
+  }
+
+  destroyed() {
+    this.bubbleGenerator.stop();
+    this.bubbleGenerator = null;
+    this.bubbles.splice(0);
+    this.simulation.stop();
+    select('svg')
+      .selectAll('g.bubble')
+      .data([]);
   }
 }
 </script>
@@ -64,67 +174,125 @@ class Welcome {
 #bubblesPage {
   font-family: IndieFlower;
 
-$fireColor: #9600ff;
-$fireColorT: rgba(255,80,0,0);
-$dur: 1s;
-$blur: 0.02em;
-$fireRad: 3em;
-$parts: 50;
-$partSize: 2em;
+  $fireColor: #9600ff;
+  $fireColorT: rgba(255,80,0,0);
+  $dur: 1s;
+  $blur: 0.02em;
+  $fireRad: 3em;
+  $parts: 50;
+  $partSize: 2em;
 
-body {
-	background-color: rgb(48,8,8);
-	margin: 0;
-}
-.fire {
-	font-size: 24px;
-	filter: blur($blur);
-	margin: 3em auto 0 auto;
-	position: relative;
-	width: 10em;
-	height: 12em;
-}
-.particle {
-	animation: rise $dur ease-in infinite, color $dur infinite;
-	border-radius: 50%;
-	mix-blend-mode: screen;
-	opacity: 0;
-	position: absolute;
-	bottom: 0;
-	width: $partSize;
-	height: $partSize;
-	// spread particles out in time and x-position to get desired effect
-	@for $p from 1 through $parts {
-		&:nth-of-type(#{$p}) {
-			animation-delay: $dur * random();
-			left: calc((100% - #{$partSize}) * #{($p - 1)/$parts});
-		}
-	}
-}
-@keyframes rise {
-	from {
-		opacity: 0;
-		transform: translateY(0) scale(1);
-	}
-	25% {
-		opacity: 1;
-	}
-	to {
-		opacity: 0;
-		transform: translateY(-10em) scale(0);
-	}
-}
-@keyframes color {
-	from {
-		background-image: radial-gradient(#960055 20%, rgba(255,0,0,0) 70%);
-	}
-	to {
-		background-image: radial-gradient(#960000 20%, rgba(255,0,0,0) 70%);
-	}
-}
+  #bubblesGraphic {
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    filter: blur(1px);
+  }
+
+  #cloudsContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -2;
+    overflow: hidden;
+
+  }
 
   .postSummary {
     text-align: left;
+    padding-left: 20px;
+
+   .link {
+      cursor:grab;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  #selectedPost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right:0;
+    bottom:0;
+    display: flex;
+
+    #postContent {
+      width: 960px;
+      height: 500px;
+      margin: auto;
+      display: flex;
+      background-blend-mode: screen;
+      background-color: #dadada;
+      background-image: url('/static/images/elmanana.jpg');
+      background-size: cover;
+      text-align: left;
+      padding: 5px;
+
+      #messageBody {
+        flex: 1;
+      }
+
+      .divider {
+        margin: auto 5px;
+        border: solid 1px black;
+        width: 0;
+        height: 80%;
+      }
+
+      #shippingBody {
+        flex: 1;
+        display: flex;
+        position: relative;
+
+        .back {
+          position: absolute;
+          top: -5px;
+          right: 5px;
+          font-size: 30px;
+          cursor: grab;
+        }
+
+        #stamp {
+          position: absolute;
+          top: 40px;
+          right: 40px;
+          width: 60px;
+          height: 80px;
+          border: solid 1px black;
+
+          img {
+            transform: rotate(15deg);
+            width: 100%;
+            height: 100%;
+          }
+        }
+
+        #address {
+          margin: auto;
+          padding-top: 100px;
+
+          p {
+            border-bottom: solid 1px black;
+            line-height: 40px;
+            padding: 5px;
+
+            &:after {
+              display: block;
+              margin-top: -19px;
+              content: "";
+            }
+          }
+        }
+      }
+    }
   }
 }
 </style>
