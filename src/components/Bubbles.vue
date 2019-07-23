@@ -76,7 +76,6 @@ class Welcome {
     posts = posts.map(post => parseMarkdown(post));
 
     this.posts = posts;
-    [this.selectedPost] = this.posts;
   }
 
   generateUUID() {
@@ -235,6 +234,19 @@ class Welcome {
       background-size: cover;
       text-align: left;
       padding: 5px;
+      border-width: 4px;
+      border-style: solid;
+      animation: rainbow 60s infinite alternate;
+
+     @keyframes rainbow {
+      0% {border-color:red}
+      14% {border-color:orange,}
+      28% {border-color: yellow,}
+      56% {border-color:green, }
+      70% {border-color: cyan, }
+      84% {border-color: blue,}
+      98% {border-color: violet}
+      }
 
       #messageBody {
         flex: 1;

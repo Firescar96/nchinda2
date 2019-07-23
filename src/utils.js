@@ -1,12 +1,5 @@
 import marked from 'marked';
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-});
-export { marked };
-
 export function parseMarkdown(markdown) {
   //extract tokens which are needed for the summary display
   const tokens = marked.lexer(markdown);
