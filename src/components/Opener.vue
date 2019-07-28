@@ -1,29 +1,15 @@
 <template>
-  <div>
-    <nav>
-      <div>
-        <router-link to="/snowflake">
-          Snowflake
-        </router-link>
-      </div>
-      <div>
-        <router-link to="/pebbles">
-          Pebbles
-        </router-link>
-      </div>
-      <div>
-        <router-link to="/firescar">
-          Firescar
-        </router-link>
-      </div>
-      <div>
-        <router-link to="/bubbles">
-          Bubbles
-        </router-link>
-      </div>
-    </nav>
+  <div id="opener">
     <div>
       Nchinda Nchinda
+      <div id="personaBox">
+        <router-link id="snowflakeSection" to="/snowflake" class="personaSection" />
+        <div class="personaRow">
+          <router-link id="pebblesSection" to="/pebbles" class="personaSection" />
+          <router-link id="firescarSection" to="/firescar" class="personaSection" />
+        </div>
+        <router-link id="bubblesSection" to="/bubbles" class="personaSection" />
+      </div>
     </div>
   </div>
 </template>
@@ -43,5 +29,69 @@ class Welcome {
   }
 }
 </script>
-<style>
+<style lang="scss">
+  #opener {
+    background: black;
+  }
+
+  #personaBox {
+    display: inline-block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: auto;
+    transform: translate(-50%, -50%);
+  }
+
+  .personaRow {
+    display: flex;
+    width: 600px;
+    justify-content: space-between;
+  }
+
+  .personaSection {
+    width: 200px;
+    height: 200px;
+    margin: auto;
+    border: solid 1px white;
+    transform: rotateZ(45deg);
+    display: block;
+
+    &:before {
+      content: "";
+      top: 0;
+      left: 0;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    transform: rotateZ(-45deg);
+    }
+  }
+
+  #snowflakeSection:before {
+    background-image: url('/static/images/snowflake-logo.png');
+    background-repeat: no-repeat;
+    background-size: 180px;
+    background-position-x: 10px;
+    background-position-y: 0px;
+  }
+  #firescarSection:before {
+    background-image: url('/static/images/firescar-logo.png');
+    background-repeat: no-repeat;
+    background-size: 240px;
+    background-position-x: -20px;
+    background-position-y: -10px;
+  }
+  #pebblesSection:before {
+    background-image: url('/static/images/pebbles-logo.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-size: 180px;
+    background-position-x: 10px;
+    background-position-y: 0px;
+  }
+  #bubblesSection:before {
+    background-image: url('/static/images/bubbles-logo.png');
+    background-size: cover;
+  }
 </style>

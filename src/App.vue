@@ -49,13 +49,13 @@ html, body {
       text-decoration: none;
     }
     #snowflakeLink {
-      color: white;
+      color: skyblue;
     }
     #pebblesLink {
       color: green;
     }
     #bubblesLink {
-      color: blue;
+      color:grey;
     }
     #firescarLink {
       color: red;
