@@ -29,6 +29,7 @@
           </div>
 
           <div id="address">
+            <p>My friend</p>
             <p>3rd and Breath</p>
             <p>Black Rock City, Nevada</p>
             <p>United States</p>
@@ -121,7 +122,7 @@ class Welcome {
         vy: -(0.3),
       });
       this.updateGraphic();
-    }, 300);
+    }, 800);
 
     this.simulation
       .alpha(1)
@@ -200,6 +201,9 @@ class Welcome {
     z-index: -2;
     overflow: hidden;
 
+    video {
+      height: 100%;
+    }
   }
 
   .postSummary {
@@ -250,6 +254,8 @@ class Welcome {
 
       #messageBody {
         flex: 1;
+
+        font-size: 20px;
       }
 
       .divider {

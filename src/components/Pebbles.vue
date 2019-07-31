@@ -22,8 +22,8 @@
           </div>
           <div id="generatedText" ref="generatedText" v-html="selectedPost.fullText" />
           <div id="messageBox">
-            <span>Message:</span> <textarea rows="2" />
-            <input type="submit">
+            <span>Message:</span> <textarea placeholder="trollbox coming soon" rows="2" disabled />
+            <input type="submit" disabled>
           </div>
         </div>
         <div id="usersBox">
@@ -98,6 +98,7 @@ class Welcome {
   .postSummary {
     padding-left: 20px;
     text-align: left;
+    color: wheat;
 
     .link {
       cursor:grab;

@@ -16,8 +16,9 @@
       <div class="back" @click="selectedPost=null">
         ←
       </div>
-      <div id="postContent" ref="postContent">
-        <div ref="generatedText" v-html="selectedPost.fullText" />
+      <div id="postContent">
+        <div v-html="selectedPost.fullText" />
+        <div id="journalBackground" ref="journalBackground" />
       </div>
     </div>
   </div>
@@ -47,11 +48,13 @@ class Welcome {
     await this.$nextTick();
 
     //calculate how many spacer lines are needed
-    const numSpacers = (this.$refs.selectedPost.offsetHeight - this.$refs.postContent.offsetHeight) / 33 - 2;
+    //number of pixels to space from top empirically chosen as 96
+    const numSpacers = (this.$refs.journalBackground.offsetHeight - 96) / 33 - 2;
     for(let i = 0; i < numSpacers; i++) {
+      console.log('here', i);
       const div = document.createElement('div');
       div.classList.add('spacer');
-      this.$refs.postContent.append(div);
+      this.$refs.journalBackground.append(div);
     }
   }
 
@@ -63,11 +66,7 @@ class Welcome {
     posts = await Promise.all(posts);
     posts = posts.map(async post => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map((_post) => {
-      //my quirk
-      const post = _post.replace(/o|O/g, '&ast;');
-      console.log(post);
-
+    posts = posts.map((post) => {
       const tokens = marked.lexer(post);
       let title = tokens.find(x => x.type === 'heading');
       let [date] = tokens.filter(x => x.type === 'paragraph');
@@ -143,29 +142,21 @@ class Welcome {
       margin: auto;
       max-width: 960px;
       width: 80%;
+      height: 100%;
       text-align: left;
       padding-left: 2px;
       border-left: double 5px black;
+      position: relative;
+
+      h1 {
+        margin-top: 0;
+      }
 
       p, li {
         margin: 0;
-        border-bottom: solid 1px black;
-        line-height: 40px;
-        padding: 5px;
-
-        &:after {
-          display: block;
-          margin-top: -19px;
-          content: "";
-        }
-      }
-
-      br {
-        display: block;
-        margin-top: -14px;
-        content: "";
-        border-bottom: solid 1px black;
-        margin-left: -5px;
+        // border-bottom: solid 1px black;
+        line-height: 33px;
+        padding: 0 5px;
       }
 
       ul {
@@ -179,9 +170,18 @@ class Welcome {
       }
     }
 
-    .spacer {
-      height: 32px;
-      border-bottom: solid 1px black;
+    #journalBackground {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding-top: 86px;
+
+      .spacer {
+        height: 32px;
+        border-bottom: solid 1px black;
+      }
     }
   }
 
