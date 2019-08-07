@@ -16,6 +16,8 @@
       <div class="back" @click="selectedPost=null">
         ←
       </div>
+
+      <!-- citation goes to http://www.patorjk.com/software/taag/ -->
       <div id="postContent" ref="postContent">
         <span class="termUser">firecar96@comsat1</span>
         <span class="termDir">~/public</span> $ cat posts/{{ selectedPost.index }}.md
@@ -33,7 +35,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 1;
+const NUM_POSTS = 2;
 export default
 @Component()
 class Welcome {
@@ -70,7 +72,7 @@ class Welcome {
       };
     });
 
-    posts.forEach((post, index) => { post.index = index + 1; });
+    posts.forEach((post, index) => { post.index = posts.length - index; });
     this.posts = posts;
   }
 }
@@ -180,14 +182,15 @@ class Welcome {
     position: absolute;
     top: 0;
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
     color: white;
     background: black;
     z-index: 1000;
     font-size: 22px;
 
+
     .back {
-      position: absolute;
+      position: fixed;
       top: 10px;
       left: 20px;
       font-size: 80px;
@@ -200,6 +203,11 @@ class Welcome {
       width: 80%;
       text-align: left;
 
+      p:first-of-type {
+        font-family: monospace;
+        white-space: pre;
+      }
+
       .termUser {
         color: #00AA00;
       }
@@ -211,7 +219,6 @@ class Welcome {
       p, li {
         margin: 0;
         line-height: 30px;
-        white-space: pre;
       }
 
       ul {
@@ -230,6 +237,9 @@ class Welcome {
         }
       }
 
+      code {
+        font-size: 16px;
+      }
 
       .cursor {
         height: 12px;
