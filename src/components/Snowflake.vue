@@ -16,7 +16,7 @@
       <div class="back" @click="selectedPost=null">
         ←
       </div>
-      <div id="postContent">
+      <div id="postContent" ref="postContent">
         <div v-html="selectedPost.fullText" />
         <div id="journalBackground" ref="journalBackground" />
       </div>
@@ -29,7 +29,7 @@ import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
 import marked from 'marked';
 
-const NUM_POSTS = 1;
+const NUM_POSTS = 2;
 export default
 @Component()
 class Welcome {
@@ -49,7 +49,7 @@ class Welcome {
 
     //calculate how many spacer lines are needed
     //number of pixels to space from top empirically chosen as 96
-    const numSpacers = (this.$refs.journalBackground.offsetHeight - 96) / 33 - 2;
+    const numSpacers = (this.$refs.postContent.offsetHeight - 96) / 33 - 1;
     for(let i = 0; i < numSpacers; i++) {
       console.log('here', i);
       const div = document.createElement('div');
@@ -142,7 +142,7 @@ class Welcome {
       margin: auto;
       max-width: 960px;
       width: 80%;
-      height: 100%;
+      min-height: 100%;
       text-align: left;
       padding-left: 2px;
       border-left: double 5px black;
@@ -177,6 +177,7 @@ class Welcome {
       right: 0;
       bottom: 0;
       padding-top: 86px;
+      pointer-events: none;
 
       .spacer {
         height: 32px;
