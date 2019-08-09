@@ -202,7 +202,7 @@ class Welcome {
     overflow: hidden;
 
     video {
-      height: 100%;
+      object-fit: fill;
     }
   }
 

@@ -49,7 +49,8 @@ class Welcome {
 
     //calculate how many spacer lines are needed
     //number of pixels to space from top empirically chosen as 96
-    const numSpacers = (this.$refs.postContent.offsetHeight - 96) / 33 - 1;
+    this.$refs.journalBackground.style.marginTop = `${document.querySelector('#postContent h1').offsetHeight + 22}px`;
+    const numSpacers = (this.$refs.journalBackground.getBoundingClientRect().height) / 40 - 1;
     for(let i = 0; i < numSpacers; i++) {
       console.log('here', i);
       const div = document.createElement('div');
@@ -59,6 +60,7 @@ class Welcome {
   }
 
   async created() {
+    window.updateBlankLines = this.updateBlankLines;
     let posts = [];
     for(let i = NUM_POSTS; i > 0; i--) {
       posts.push(fetch(`/static/snowflake/${i}.md`));
@@ -89,12 +91,12 @@ class Welcome {
 </script>
 <style lang="scss">
 @font-face {
-    font-family: "Marck_Script";
-    src: url("../../static/fonts/Marck_Script/MarckScript-Regular.ttf");
+    font-family: "Aladin";
+    src: url("../../static/fonts/Aladin/Aladin-Regular.ttf");
 }
 
 #snowflakePage {
-  font-family: 'Marck_Script';
+  font-family: 'Aladin';
   font-size: 25px;
   background-color: #bfd0cf;
   background-image: url('../../static/images/snowflake-paper.jpg');
@@ -155,7 +157,7 @@ class Welcome {
       p, li {
         margin: 0;
         // border-bottom: solid 1px black;
-        line-height: 33px;
+        line-height: 40px;
         padding: 0 5px;
       }
 
@@ -176,11 +178,10 @@ class Welcome {
       left: 0;
       right: 0;
       bottom: 0;
-      padding-top: 86px;
       pointer-events: none;
 
       .spacer {
-        height: 32px;
+        height: 39px;
         border-bottom: solid 1px black;
       }
     }
