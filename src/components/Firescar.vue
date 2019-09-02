@@ -35,7 +35,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 2;
+const NUM_POSTS = 3;
 export default
 @Component()
 class Welcome {
@@ -65,7 +65,9 @@ class Welcome {
         return marked.parser(raw);
       });
 
-      const fullText = marked.parser(tokens);
+      const fullText = marked
+        .parser(tokens)
+        .replace('./', '/static/firescar/');
 
       return {
         title, date, fullText,
@@ -218,6 +220,7 @@ class Welcome {
 
       p, li {
         margin: 0;
+        margin-bottom: 30px;
         line-height: 30px;
       }
 
@@ -235,6 +238,19 @@ class Welcome {
             margin-right: 5px;
           }
         }
+      }
+
+      table, img {
+        margin: 15px 0;
+      }
+
+      th {
+        border-bottom: solid 1px white;
+      }
+
+      th, td {
+        margin: 0;
+        padding: 5px 5px;
       }
 
       code {
