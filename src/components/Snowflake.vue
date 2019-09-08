@@ -16,9 +16,11 @@
       <div class="back" @click="selectedPost=null">
         ←
       </div>
-      <div id="postContent" ref="postContent">
-        <div v-html="selectedPost.fullText" />
-        <div id="journalBackground" ref="journalBackground" />
+      <div id="postContentBox">
+        <div id="postContent" ref="postContent">
+          <div v-html="selectedPost.fullText" />
+          <div id="journalBackground" ref="journalBackground" />
+        </div>
       </div>
     </div>
   </div>
@@ -29,7 +31,7 @@ import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
 import marked from 'marked';
 
-const NUM_POSTS = 2;
+const NUM_POSTS = 3;
 export default
 @Component()
 class Welcome {
@@ -52,7 +54,6 @@ class Welcome {
     this.$refs.journalBackground.style.marginTop = `${document.querySelector('#postContent h1').offsetHeight + 22}px`;
     const numSpacers = (this.$refs.journalBackground.getBoundingClientRect().height) / 40 - 1;
     for(let i = 0; i < numSpacers; i++) {
-      console.log('here', i);
       const div = document.createElement('div');
       div.classList.add('spacer');
       this.$refs.journalBackground.append(div);
@@ -60,7 +61,6 @@ class Welcome {
   }
 
   async created() {
-    window.updateBlankLines = this.updateBlankLines;
     let posts = [];
     for(let i = NUM_POSTS; i > 0; i--) {
       posts.push(fetch(`/static/snowflake/${i}.md`));
@@ -129,7 +129,6 @@ class Welcome {
     top: 0;
     width: 100vw;
     height: 100vh;
-    background: snow;
     z-index: 1000;
 
     .back {
@@ -138,6 +137,10 @@ class Welcome {
       left: 20px;
       font-size: 80px;
       cursor: grab;
+    }
+
+    #postContentBox {
+      background: #fafdff;
     }
 
     #postContent {
@@ -154,11 +157,15 @@ class Welcome {
         margin-top: 0;
       }
 
-      p, li {
+      p, li, h3 {
         margin: 0;
         // border-bottom: solid 1px black;
         line-height: 40px;
         padding: 0 5px;
+      }
+
+      h3 {
+        margin-top: 40px;
       }
 
       ul {

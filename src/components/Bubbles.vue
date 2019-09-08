@@ -203,6 +203,7 @@ class Welcome {
 
     video {
       object-fit: fill;
+      height: 100%;
     }
   }
 

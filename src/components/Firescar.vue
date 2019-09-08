@@ -67,7 +67,7 @@ class Welcome {
 
       const fullText = marked
         .parser(tokens)
-        .replace('./', '/static/firescar/');
+        .replace(/\.\//g, '/static/firescar/');
 
       return {
         title, date, fullText,

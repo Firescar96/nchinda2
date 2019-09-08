@@ -41,7 +41,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 1;
+const NUM_POSTS = 2;
 export default
 @Component()
 class Welcome {
@@ -72,7 +72,9 @@ class Welcome {
         return marked.parser(raw);
       });
 
-      const fullText = marked.parser(tokens);
+      const fullText = marked
+        .parser(tokens)
+        .replace(/\.\//g, '/static/pebbles/');
 
       return {
         title, date, fullText,
