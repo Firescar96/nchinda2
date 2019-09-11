@@ -46,13 +46,13 @@ import Component from 'vue-class-component';
 import {
   select, interval, forceSimulation, forceY,
 } from 'd3';
-import { parseMarkdown } from '../utils';
+import marked from 'marked';
 
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../static/images/bubble.png';
 
 
-const NUM_POSTS = 1;
+const NUM_POSTS = 2;
 export default
 @Component()
 class Welcome {
@@ -74,8 +74,25 @@ class Welcome {
     posts = await Promise.all(posts);
     posts = posts.map(async post => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map(post => parseMarkdown(post));
+    posts = posts.map((post) => {
+      const tokens = marked.lexer(post);
+      let title = tokens.find(x => x.type === 'heading');
+      let [date] = tokens.filter(x => x.type === 'paragraph');
 
+      [title, date] = [title, date].map((_raw) => {
+        const raw = [_raw];
+        raw.links = {};
+        return marked.parser(raw);
+      });
+
+      const fullText = marked
+        .parser(tokens)
+        .replace(/\.\//g, '/static/bubbles/');
+
+      return { title, date, fullText };
+    });
+
+    posts.forEach((post, index) => { post.index = posts.length - index; });
     this.posts = posts;
   }
 
@@ -230,7 +247,8 @@ class Welcome {
 
     #postContent {
       width: 960px;
-      height: 500px;
+      min-height: 500px;
+      max-height: 80vh;
       margin: auto;
       display: flex;
       background-blend-mode: screen;
@@ -255,15 +273,16 @@ class Welcome {
 
       #messageBody {
         flex: 1;
-
         font-size: 20px;
+        overflow-y: auto;
+        padding: 5px;
       }
 
       .divider {
         margin: auto 5px;
         border: solid 1px black;
-        width: 0;
-        height: 80%;
+        width: 1;
+        height: 50vh;
       }
 
       #shippingBody {
