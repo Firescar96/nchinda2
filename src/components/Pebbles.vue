@@ -41,7 +41,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 2;
+const NUM_POSTS = 3;
 export default
 @Component()
 class Welcome {

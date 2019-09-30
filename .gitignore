@@ -21,3 +21,5 @@ yarn-error.log*
 *.sw?
 
 static/*
+cert.pem
+privkey.pem
