@@ -72,12 +72,12 @@ class Welcome {
       posts.push(fetch(`/static/bubbles/${i}.md`));
     }
     posts = await Promise.all(posts);
-    posts = posts.map(async post => post.text());
+    posts = posts.map(async (post) => post.text());
     posts = await Promise.all(posts);
     posts = posts.map((post) => {
       const tokens = marked.lexer(post);
-      let title = tokens.find(x => x.type === 'heading');
-      let [date] = tokens.filter(x => x.type === 'paragraph');
+      let title = tokens.find((x) => x.type === 'heading');
+      let [date] = tokens.filter((x) => x.type === 'paragraph');
 
       [title, date] = [title, date].map((_raw) => {
         const raw = [_raw];
@@ -97,7 +97,7 @@ class Welcome {
   }
 
   generateUUID() {
-    return '66-6-6-6-666'.replace(/6/g, _ => (`${Math.random().toString(16)}00000`).slice(2, 6));
+    return '66-6-6-6-666'.replace(/6/g, (_) => (`${Math.random().toString(16)}00000`).slice(2, 6));
   }
 
   updateGraphic() {
@@ -111,11 +111,11 @@ class Welcome {
     const nodeEnter = nodes.enter()
       .append('svg:g')
       .attr('class', 'bubble')
-      .attr('transform', d => `translate(${d.x},${d.y})`);
+      .attr('transform', (d) => `translate(${d.x},${d.y})`);
     nodeEnter
       .append('circle')
       .attr('fill', 'transparent')
-      .attr('r', d => d.r);
+      .attr('r', (d) => d.r);
     nodeEnter
       .append('svg:image')
       .attr('xlink:href', bubbleImg)
@@ -160,7 +160,7 @@ class Welcome {
       .on('tick', () => {
         select('svg')
           .selectAll('g.bubble')
-          .attr('transform', d => `translate(${d.x},${d.y})`);
+          .attr('transform', (d) => `translate(${d.x},${d.y})`);
 
         for(let i = this.bubbles.length - 1; i >= 0; i--) {
           if(this.bubbles[i].x > window.innerWidth + 50 || this.bubbles[i].y < 0) {
@@ -219,8 +219,13 @@ class Welcome {
     overflow: hidden;
 
     video {
-      object-fit: fill;
-      height: 100%;
+      /* Make video to at least 100% wide and tall */
+      min-width: 100%;
+      min-height: 100%;
+
+      /* Setting width & height to auto prevents the browser from stretching or squishing the video */
+      width: auto;
+      height: auto;
     }
   }
 
