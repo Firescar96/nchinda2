@@ -34,7 +34,7 @@ import marked from 'marked';
 const NUM_POSTS = 6;
 export default
 @Component()
-class Welcome {
+class Snowflake {
   data() {
     return {
       posts: [],

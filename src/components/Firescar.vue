@@ -38,7 +38,7 @@ import marked from 'marked';
 const NUM_POSTS = 4;
 export default
 @Component()
-class Welcome {
+class Firescar {
   data() {
     return {
       posts: [],

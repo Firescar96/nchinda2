@@ -15,6 +15,7 @@ marked.setOptions({
 });
 
 new Vue({
-  render: (h) => h(App),
+  components: { App },
+  template: '<App/>',
   router,
 }).$mount('#app');

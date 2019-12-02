@@ -25,7 +25,6 @@
     <router-view class="main" />
   </div>
 </template>
-
 <style lang="scss">
 html, body {
   margin: 0;

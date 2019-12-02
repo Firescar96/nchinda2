@@ -44,7 +44,7 @@ import marked from 'marked';
 const NUM_POSTS = 3;
 export default
 @Component()
-class Welcome {
+class Pebbles {
   data() {
     return {
       posts: [],
@@ -60,7 +60,7 @@ class Welcome {
       posts.push(fetch(`/static/pebbles/${i}.md`));
     }
     posts = await Promise.all(posts);
-    posts = posts.map(async post => post.text());
+    posts = posts.map(async (post) => post.text());
     posts = await Promise.all(posts);
     posts = posts.map((post) => {
       const tokens = marked.lexer(post);

@@ -19,7 +19,7 @@ import Component from 'vue-class-component';
 
 export default
 @Component()
-class Welcome {
+class Opener {
   mounted() {
 
   }

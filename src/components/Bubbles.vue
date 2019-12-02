@@ -55,7 +55,7 @@ import bubbleImg from '@/../static/images/bubble.png';
 const NUM_POSTS = 2;
 export default
 @Component()
-class Welcome {
+class Bubbles {
   data() {
     return {
       posts: [],
