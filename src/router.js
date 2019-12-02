@@ -1,17 +1,12 @@
 import VueRouter from 'vue-router';
-import Opener from '@/components/Opener';
-import Snowflake from '@/components/Snowflake';
-import Firescar from '@/components/Firescar';
-import Pebbles from '@/components/Pebbles';
-import Bubbles from '@/components/Bubbles';
 
 export default new VueRouter({
   mode: 'history',
   routes: [
-    { path: '/', component: Opener },
-    { path: '/snowflake', component: Snowflake },
-    { path: '/firescar', component: Firescar },
-    { path: '/pebbles', component: Pebbles },
-    { path: '/bubbles', component: Bubbles },
+    { path: '/', component: () => import('@/components/Opener') },
+    { path: '/snowflake', component: () => import('@/components/Snowflake') },
+    { path: '/firescar', component: () => import('@/components/Firescar') },
+    { path: '/pebbles', component: () => import('@/components/Pebbles') },
+    { path: '/bubbles', component: () => import('@/components/Bubbles') },
   ],
 });

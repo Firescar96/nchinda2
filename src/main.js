@@ -15,6 +15,6 @@ marked.setOptions({
 });
 
 new Vue({
-  render: h => h(App),
+  render: (h) => h(App),
   router,
 }).$mount('#app');

@@ -31,7 +31,7 @@ import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
 import marked from 'marked';
 
-const NUM_POSTS = 3;
+const NUM_POSTS = 6;
 export default
 @Component()
 class Welcome {
@@ -66,12 +66,12 @@ class Welcome {
       posts.push(fetch(`/static/snowflake/${i}.md`));
     }
     posts = await Promise.all(posts);
-    posts = posts.map(async post => post.text());
+    posts = posts.map(async (post) => post.text());
     posts = await Promise.all(posts);
     posts = posts.map((post) => {
       const tokens = marked.lexer(post);
-      let title = tokens.find(x => x.type === 'heading');
-      let [date] = tokens.filter(x => x.type === 'paragraph');
+      let title = tokens.find((x) => x.type === 'heading');
+      let [date] = tokens.filter((x) => x.type === 'paragraph');
 
       [title, date] = [title, date].map((_raw) => {
         const raw = [_raw];
@@ -157,7 +157,7 @@ class Welcome {
         margin-top: 0;
       }
 
-      p, li, h3 {
+      h4, p, li, h3 {
         margin: 0;
         // border-bottom: solid 1px black;
         line-height: 40px;
@@ -168,7 +168,7 @@ class Welcome {
         margin-top: 40px;
       }
 
-      ul {
+      ol, ul {
         margin: 0;
         padding: 0;
         list-style-position: inside;
@@ -176,6 +176,15 @@ class Welcome {
         li {
           padding-left: 40px;
         }
+      }
+
+      ol {
+        margin-top: 40px;
+        margin-bottom: 40px;
+      }
+
+      .text-bubbles {
+        color: #4697c9;
       }
     }
 

@@ -53,7 +53,7 @@ class Welcome {
       posts.push(fetch(`/static/firescar/${i}.md`));
     }
     posts = await Promise.all(posts);
-    posts = posts.map(async post => post.text());
+    posts = posts.map(async (post) => post.text());
     posts = await Promise.all(posts);
     posts = posts.map((post) => {
       const tokens = marked.lexer(post);
