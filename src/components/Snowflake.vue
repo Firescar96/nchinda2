@@ -18,8 +18,8 @@
       </div>
       <div id="postContentBox">
         <div id="postContent" ref="postContent">
-          <div v-html="selectedPost.fullText" />
           <div id="journalBackground" ref="journalBackground" />
+          <div id="journalForeground" v-html="selectedPost.fullText" />
         </div>
       </div>
     </div>
@@ -183,8 +183,30 @@ class Snowflake {
         margin-bottom: 40px;
       }
 
+      pre {
+        margin-top: -10px;
+        margin-bottom: 10px;
+        background: #fafdff;
+      }
+
+      code {
+        line-height: 40px;
+      }
+
       .text-bubbles {
+        display: block;
         color: #4697c9;
+        margin: 40px 0;
+      }
+
+      .text-firescar {
+        color: #c94646;
+        margin: 40px 0;
+        display: block;
+      }
+
+      #journalForeground {
+        position: relative;
       }
     }
 

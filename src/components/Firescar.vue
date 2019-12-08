@@ -35,7 +35,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 4;
+const NUM_POSTS = 5;
 export default
 @Component()
 class Firescar {
