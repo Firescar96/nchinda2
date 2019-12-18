@@ -1,14 +1,17 @@
 <template>
   <div id="bubblesPage">
-    <div id="cloudsContainer">
-      <video autoplay loop>
-        <!-- original video taken from https://www.youtube.com/watch?v=dRLB1ScXbEA -->
-        <source src="/static/videos/clouds-5m.webm" type="video/webm"></source>
-      </video>
+    <div
+      id="cloudsContainer"
+      :class="{focusVideo: focusVideo}"
+    >
+      <video
+        ref="backgroundVid" autoplay loop
+        class="video-js vjs-default-skin"
+        :controls="focusVideo"
+      />
     </div>
 
     <svg v-show="!selectedPost" id="bubblesGraphic" />
-
     <div v-for="(post, index) in posts" v-show="!selectedPost" :key="index" class="postSummary">
       <div class="link" @click="selectedPost=post" v-html="post.title" />
       <div v-html="post.date" />
@@ -52,7 +55,7 @@ import marked from 'marked';
 import bubbleImg from '@/../static/images/bubble.png';
 
 
-const NUM_POSTS = 2;
+const NUM_POSTS = 3;
 export default
 @Component()
 class Bubbles {
@@ -63,6 +66,7 @@ class Bubbles {
       bubbles: [],
       simulation: null,
       bubbleGenerator: null,
+      focusVideo: false,
     };
   }
 
@@ -94,6 +98,24 @@ class Bubbles {
 
     posts.forEach((post, index) => { post.index = posts.length - index; });
     this.posts = posts;
+
+
+    const player = window.videojs(this.$refs.backgroundVid);
+    if(this.$route.query.video) {
+      player.src({
+        src: `/static/videos/${this.$route.query.video}/stream.mpd`,
+        type: 'application/dash+xml',
+      });
+      this.focusVideo = true;
+    } else {
+      player.src(
+        {
+          src: 'https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd',
+          //src: '/static/videos/clouds-5m/stream.mpd',
+          type: 'application/dash+xml',
+        },
+      );
+    }
   }
 
   generateUUID() {
@@ -209,23 +231,31 @@ class Bubbles {
     filter: blur(1px);
   }
 
-  #cloudsContainer {
+  div#cloudsContainer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: -2;
+    z-index: 10;
     overflow: hidden;
+    >div {
+      width: 100%;
+      height: 100%;
+    }
 
-    video {
-      /* Make video to at least 100% wide and tall */
-      min-width: 100%;
-      min-height: 100%;
+    &:not(.focusVideo) {
+      z-index: -2;
 
-      /* Setting width & height to auto prevents the browser from stretching or squishing the video */
-      width: auto;
-      height: auto;
+      video {
+        /* Make video to at least 100% wide and tall */
+        min-width: 100%;
+        min-height: 100%;
+
+        /* Setting width & height to auto prevents the browser from stretching or squishing the video */
+        width: auto;
+        height: auto;
+      }
     }
   }
 
