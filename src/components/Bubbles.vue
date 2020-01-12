@@ -229,7 +229,7 @@ class Bubbles {
     left: 0;
     width: 100vw;
     height: 100vh;
-    // z-index: 10;
+    z-index: 10;
     overflow: hidden;
     >div {
       width: 100%;
@@ -237,7 +237,7 @@ class Bubbles {
     }
 
     &:not(.focusVideo) {
-      // z-index: -2;
+      z-index: 1;
 
       video {
         /* Make video to at least 100% wide and tall */
