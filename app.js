@@ -8,6 +8,8 @@ const https = require('https');
 const httpsPort = process.env.NODE_ENV == 'production' ? 443 : 8081;
 
 const httpServer = express();
+const certbot = path.join(__dirname, './static/');
+httpServer.get('/.well-known*', gzipStatic(certbot));
 httpServer.get('/*', (req, res) => {
   res.redirect(`https://${req.hostname}:${httpsPort}${req.url}`);
 });

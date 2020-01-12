@@ -7,14 +7,15 @@
       <video
         ref="backgroundVid" autoplay loop
         class="video-js vjs-default-skin"
-        :controls="focusVideo"
+        controls
       />
     </div>
 
-    <svg v-show="!selectedPost" id="bubblesGraphic" />
-    <div v-for="(post, index) in posts" v-show="!selectedPost" :key="index" class="postSummary">
-      <div class="link" @click="selectedPost=post" v-html="post.title" />
-      <div v-html="post.date" />
+    <div id="postSummaryContainer">
+      <div v-for="(post, index) in posts" v-show="!selectedPost" :key="index" class="postSummary">
+        <div class="link" @click="selectedPost=post" v-html="post.title" />
+        <div v-html="post.date" />
+      </div>
     </div>
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
@@ -99,12 +100,12 @@ class Bubbles {
     posts.forEach((post, index) => { post.index = posts.length - index; });
     this.posts = posts;
 
-
     const player = window.videojs(this.$refs.backgroundVid);
     if(this.$route.query.video) {
       player.src({
-        src: `/static/videos/${this.$route.query.video}/stream.mpd`,
-        type: 'application/dash+xml',
+        src: `/static/videos/${this.$route.query.video}/master.m3u8`,
+        type: 'application/x-mpegURL',
+        overrideNative: true,
       });
       this.focusVideo = true;
     } else {
@@ -212,6 +213,7 @@ class Bubbles {
 
 #bubblesPage {
   font-family: IndieFlower;
+  display: flex;
 
   $fireColor: #9600ff;
   $fireColorT: rgba(255,80,0,0);
@@ -221,23 +223,13 @@ class Bubbles {
   $parts: 50;
   $partSize: 2em;
 
-  #bubblesGraphic {
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    position: absolute;
-    top: 0;
-    left: 0;
-    filter: blur(1px);
-  }
-
   div#cloudsContainer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 10;
+    // z-index: 10;
     overflow: hidden;
     >div {
       width: 100%;
@@ -245,7 +237,7 @@ class Bubbles {
     }
 
     &:not(.focusVideo) {
-      z-index: -2;
+      // z-index: -2;
 
       video {
         /* Make video to at least 100% wide and tall */
@@ -256,18 +248,36 @@ class Bubbles {
         width: auto;
         height: auto;
       }
+      .vjs-control-bar {
+        visibility: hidden;
+      }
     }
   }
 
-  .postSummary {
-    text-align: left;
-    padding-left: 20px;
+  #postSummaryContainer {
+    z-index: 5;
+    color: white;
+    mix-blend-mode: difference;
 
-   .link {
-      cursor:grab;
+    .postSummary {
+      text-align: left;
+      padding-left: 20px;
 
-      &:hover {
-        text-decoration: underline;
+      h1 {
+        font-size: 3em;
+        margin-bottom: 10px;
+      }
+      p {
+        font-size: 1.5em;
+        margin: 0;
+      }
+
+    .link {
+        cursor:grab;
+
+        &:hover {
+          text-decoration: underline;
+        }
       }
     }
   }
