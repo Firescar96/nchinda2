@@ -8,5 +8,6 @@ export default new VueRouter({
     { path: '/pebbles', component: () => import('@/components/Pebbles') },
     { path: '/bubbles', component: () => import('@/components/Bubbles') },
     { path: '*', component: () => import('@/components/Opener') },
+    { path: '/live/:stream', component: () => import('@/components/Live') },
   ],
 });
