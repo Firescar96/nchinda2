@@ -31,7 +31,6 @@ html, body {
 }
 
 #app {
-  text-align: center;
   display: flex;
   flex-direction: column;
   width: 100vw;

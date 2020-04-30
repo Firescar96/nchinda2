@@ -1,11 +1,13 @@
 <template>
-  <video
-    ref="liveVid"
-    class="video-js vjs-default-skin"
-  >
-    <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
-    <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml">
-  </video>
+  <div>
+    <video
+      ref="liveVid"
+      class="video-js vjs-default-skin"
+    >
+      <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
+      <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml">
+    </video>
+  </div>
 </template>
 
 <script>
@@ -66,6 +68,8 @@ $center-big-play-button: true; // true default
 
   /* The main font color changes the ICON COLORS as well as the text */
   color: $primary-foreground-color;
+  height: 100%;
+  width: 100%;
 }
 
 /* The "Big Play Button" is the play button that shows before the video plays.
