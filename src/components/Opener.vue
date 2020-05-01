@@ -4,9 +4,13 @@
       Nchinda Nchinda
       <div id="livestreamBox">
         <div>Active Livestreams</div>
+        <a id="sportDeath" class="livestream-link" href="/live/roast">
+          <img src="/static/live/sportdeath.png">
+          <span>Steer Roast</span>
+        </a>
         <a class="livestream-link" href="/live/lobby">
           <img src="/static/live/homestuck_splatter_gamzee_makara_logo_by_kunfuzi-d776nvu.png">
-          <span>Lobby</span>
+          <span>Relax</span>
         </a>
       </div>
       <div id="personaBox">
@@ -54,7 +58,7 @@ class Opener {
     font-size: 40px;
 
     a {
-      display: inline-block;
+      display: block;
       text-align: center;
       position: relative;
 
@@ -80,7 +84,7 @@ class Opener {
           color: white;
         }
         img {
-          opacity: .5;
+          opacity: .4;
         }
       }
     }
