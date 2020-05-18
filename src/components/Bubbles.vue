@@ -1,5 +1,8 @@
 <template>
   <div id="bubblesPage">
+    <svg class="bubblesBubbleGraphic">
+    </svg>
+
     <div
       id="cloudsContainer"
       :class="{focusVideo: focusVideo}"
@@ -48,7 +51,7 @@
 <script>
 import Component from 'vue-class-component';
 import {
-  select, interval, forceSimulation, forceY,
+  select, interval, forceSimulation, forceY
 } from 'd3';
 import marked from 'marked';
 
@@ -56,7 +59,7 @@ import marked from 'marked';
 import bubbleImg from '@/../static/images/bubble.png';
 
 
-const NUM_POSTS = 3;
+const NUM_POSTS = 5;
 export default
 @Component()
 class Bubbles {
@@ -65,6 +68,11 @@ class Bubbles {
       posts: [],
       selectedPost: null,
       bubbles: [],
+      mouseData: {
+        x: 100,
+        y: 100,
+      },
+      bubbleTouchLinks: [],
       simulation: null,
       bubbleGenerator: null,
       focusVideo: false,
@@ -130,7 +138,7 @@ class Bubbles {
       .selectAll('g.bubble')
       .data(this.bubbles);
     nodes.exit().remove();
-
+    
     const nodeEnter = nodes.enter()
       .append('svg:g')
       .attr('class', 'bubble')
@@ -145,14 +153,16 @@ class Bubbles {
       .attr('x', -25)
       .attr('y', -25)
       .attr('height', 50)
-      .attr('width', 50);
+      .attr('width', 50)
+      .attr('opacity', .7);
   }
 
   mounted() {
     if(this.bubbleGenerator) return;
     this.simulation = forceSimulation(this.bubbles);
+
     this.bubbleGenerator = interval(() => {
-      this.bubbles.push({
+      const newBubble = {
         id: this.generateUUID(),
         updateTime: Date.now(),
         x: -50,
@@ -160,23 +170,51 @@ class Bubbles {
         r: 15,
         vx: Math.random() * 0.7 + 0.2,
         vy: -(0.3),
-      });
-      this.updateGraphic();
-    }, 800);
+      };
 
+      this.bubbles.push(newBubble);
+      this.bubbleTouchLinks.push({ source: newBubble.id, target: 'mouse' });
+      this.updateGraphic();
+    }, 500);
+
+    console.log('hello', this.simulation.nodes())
+    // move the bubble around the page on every tick using a loose physics approximation
     this.simulation
       .alpha(1)
       .alphaTarget(1)
       .velocityDecay(0)
-      .force('boyancy', forceY(-100).strength(0.00001))
+      .force('boyancy', forceY(-100).strength(0.000001))
       .force('source', (a, b) => {
         this.bubbles.forEach((bubble) => {
+          const directionX = bubble.vx > 0 ? 1 : -1;
+          bubble.vx = Math.abs(bubble.vx)
           //loose model for friction, does not go negative cause that would be bad
           bubble.vx = Math.max(bubble.vx - 0.006 * Math.sqrt(bubble.vx), 0.0000001);
           //the wind
-          bubble.vx += 0.001;
+          bubble.vx *= directionX;
           bubble.x += bubble.vx * (Date.now() - bubble.updateTime);
           bubble.y += bubble.vy;
+          bubble.updateTime = Date.now();
+        });
+      })
+      .force('polarity', () => {
+        this.bubbles.forEach((bubble) => {
+          const dx = this.mouseData.x - bubble.x || -1e-6;
+          const dy = this.mouseData.y - bubble.y || -1e-6;
+          const proximity = Math.sqrt((dx ** 2) + (dy ** 2));
+          const magneticForce = 1 / proximity;
+          // too close and it will pop
+          if(proximity < 20) {
+            bubble.vx = 0;
+            bubble.vy = 0;
+            bubble.x = -1000;
+            bubble.y = -1000;
+          } else if(magneticForce > .01) {
+            bubble.vx = dx * magneticForce;
+            bubble.vy = dy * magneticForce;
+            if(Math.abs(dx) < 2) bubble.vx = 0;
+            if(Math.abs(dy) < 2) bubble.vy = 0;
+          }
           bubble.updateTime = Date.now();
         });
       })
@@ -186,12 +224,21 @@ class Bubbles {
           .attr('transform', (d) => `translate(${d.x},${d.y})`);
 
         for(let i = this.bubbles.length - 1; i >= 0; i--) {
-          if(this.bubbles[i].x > window.innerWidth + 50 || this.bubbles[i].y < 0) {
+          if(this.bubbles[i].id == 'mouse') continue;
+
+          if(this.bubbles[i].x < -50 || this.bubbles[i].x > window.innerWidth + 50 || this.bubbles[i].y < 0) {
             this.bubbles.splice(i, 1);
+            this.bubbleTouchLinks.splice(i, 1);
             this.updateGraphic();
           }
         }
       });
+
+    //track the mouse
+    window.addEventListener('mousemove', e => {
+      this.mouseData.x = e.clientX;
+      this.mouseData.y = e.clientY;
+    });
   }
 
   destroyed() {
@@ -222,6 +269,21 @@ class Bubbles {
   $fireRad: 3em;
   $parts: 50;
   $partSize: 2em;
+
+  .bubblesBubbleGraphic {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    // pointer-events: none;
+    z-index: 2;
+
+    g {
+      pointer-events: all;
+    }
+  }
+
 
   div#cloudsContainer {
     position: absolute;
@@ -255,9 +317,9 @@ class Bubbles {
   }
 
   #postSummaryContainer {
-    z-index: 5;
     color: white;
     mix-blend-mode: difference;
+    z-index: 2;
 
     .postSummary {
       text-align: left;
@@ -272,8 +334,10 @@ class Bubbles {
         margin: 0;
       }
 
-    .link {
+      .link {
+        z-index: 5;
         cursor:grab;
+        display: inline-block;
 
         &:hover {
           text-decoration: underline;
