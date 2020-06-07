@@ -7,13 +7,13 @@
       </div>
     </div>
 
-    <div v-for="(post, index) in posts" :key="index" class="postSummary">
-      <div class="link" @click="selectedPost=post" v-html="post.title" />
+    <div v-for="post in posts" :key="post.index" class="postSummary">
+      <div class="link" @click="selectPost(post.index)" v-html="post.title" />
       <div v-html="post.date" />
     </div>
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
-      <div class="back" @click="selectedPost=null">
+      <div class="back" @click="selectPost(null)">
         ←
       </div>
 
@@ -35,7 +35,7 @@
 import Component from 'vue-class-component';
 import marked from 'marked';
 
-const NUM_POSTS = 8;
+const NUM_POSTS = 9;
 export default
 @Component()
 class Firescar {
@@ -55,7 +55,7 @@ class Firescar {
     posts = await Promise.all(posts);
     posts = posts.map(async (post) => post.text());
     posts = await Promise.all(posts);
-    posts = posts.map((post) => {
+    posts = posts.map((post, index) => {
       const tokens = marked.lexer(post);
       let [title, date] = tokens.splice(0, 2);
 
@@ -70,12 +70,23 @@ class Firescar {
         .replace(/\.\//g, '/static/firescar/');
 
       return {
-        title, date, fullText,
+        title, date, fullText, index: posts.length - index,
       };
     });
 
     posts.forEach((post, index) => { post.index = posts.length - index; });
     this.posts = posts;
+    if(!Number.isNaN(this.$route.query.post)) this.selectPost(this.$route.query.post);
+  }
+
+  selectPost(index) {
+    if(index) {
+      this.selectedPost = this.posts[this.posts.length - index];
+    } else {
+      this.selectedPost = index;
+    }
+
+    this.$router.push({ query: { post: index } });
   }
 }
 </script>
@@ -205,7 +216,7 @@ class Firescar {
       width: 80%;
       text-align: left;
 
-      p:first-of-type {
+      p.title {
         font-family: monospace;
         white-space: pre;
       }
@@ -255,6 +266,18 @@ class Firescar {
 
       code {
         font-size: 16px;
+      }
+
+      blockquote {
+        margin: 5px 15%;
+        padding-left: 10px;
+        border-left: 2px solid white;
+      }
+
+      img {
+        width: 80%;
+        margin: 0 10%;
+        height: auto;
       }
 
       .cursor {
