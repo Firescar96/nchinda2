@@ -33,7 +33,7 @@
 
 <script>
 import Component from 'vue-class-component';
-import marked from 'marked';
+import { loadPosts } from '@/utility';
 
 const NUM_POSTS = 9;
 export default
@@ -48,35 +48,7 @@ class Firescar {
   }
 
   async created() {
-    let posts = [];
-    for(let i = NUM_POSTS; i > 0; i--) {
-      posts.push(fetch(`/static/firescar/${i}.md`));
-    }
-    posts = await Promise.all(posts);
-    posts = posts.map(async (post) => post.text());
-    posts = await Promise.all(posts);
-    posts = posts.map((post, index) => {
-      const tokens = marked.lexer(post);
-      let [title, date] = tokens.splice(0, 2);
-
-      [title, date] = [title, date].map((_raw) => {
-        const raw = [_raw];
-        raw.links = {};
-        return marked.parser(raw);
-      });
-
-      const fullText = marked
-        .parser(tokens)
-        .replace(/\.\//g, '/static/firescar/');
-
-      return {
-        title, date, fullText, index: posts.length - index,
-      };
-    });
-
-    posts.forEach((post, index) => { post.index = posts.length - index; });
-    this.posts = posts;
-    if(!Number.isNaN(this.$route.query.post)) this.selectPost(this.$route.query.post);
+    await loadPosts('firescar', NUM_POSTS, this);
   }
 
   selectPost(index) {
@@ -215,6 +187,11 @@ class Firescar {
       max-width: 960px;
       width: 80%;
       text-align: left;
+
+      // don't show title and date
+      h1, h1+p {
+        display: none;
+      }
 
       p.title {
         font-family: monospace;

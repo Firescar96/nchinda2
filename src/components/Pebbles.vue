@@ -1,14 +1,14 @@
 <template>
   <div id="pebblesPage">
     <div v-for="(post, index) in posts" :key="index" class="postSummary">
-      <div class="link" @click="selectedPost=post" v-html="post.title" />
+      <div class="link" @click="selectPost(post.index)" v-html="post.title" />
       <div v-html="post.date" />
     </div>
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
       <div id="windowFrame">
         <span>Pesterchum - <span v-html="selectedPost.title" /></span>
-        <div class="back" @click="selectedPost=null">
+        <div class="back" @click="selectPost(null)">
           <span>X</span>
         </div>
       </div>
@@ -39,7 +39,7 @@
 
 <script>
 import Component from 'vue-class-component';
-import marked from 'marked';
+import { loadPosts } from '@/utility';
 
 const NUM_POSTS = 4;
 export default
@@ -52,36 +52,18 @@ class Pebbles {
     };
   }
 
-  mounted() {}
-
   async created() {
-    let posts = [];
-    for(let i = NUM_POSTS; i > 0; i--) {
-      posts.push(fetch(`/static/pebbles/${i}.md`));
+    await loadPosts('pebbles', NUM_POSTS, this);
+  }
+
+  selectPost(index) {
+    if(index) {
+      this.selectedPost = this.posts[this.posts.length - index];
+    } else {
+      this.selectedPost = index;
     }
-    posts = await Promise.all(posts);
-    posts = posts.map(async (post) => post.text());
-    posts = await Promise.all(posts);
-    posts = posts.map((post) => {
-      const tokens = marked.lexer(post);
-      let [title, date] = tokens.splice(0, 2);
 
-      [title, date] = [title, date].map((_raw) => {
-        const raw = [_raw];
-        raw.links = {};
-        return marked.parser(raw);
-      });
-
-      const fullText = marked
-        .parser(tokens)
-        .replace(/\.\//g, '/static/pebbles/');
-
-      return {
-        title, date, fullText,
-      };
-    });
-
-    this.posts = posts;
+    this.$router.push({ query: { post: index } });
   }
 }
 </script>
@@ -184,6 +166,11 @@ class Pebbles {
           background: antiquewhite;
           height: 600px;
           overflow-y: auto;
+
+          // hide title and date
+          h1, .date {
+            display: none;
+          }
 
           p:before, li:before {
             content: 'Pebbles:';

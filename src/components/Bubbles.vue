@@ -1,7 +1,6 @@
 <template>
   <div id="bubblesPage">
-    <svg class="bubblesBubbleGraphic">
-    </svg>
+    <svg class="bubblesBubbleGraphic" />
 
     <div
       id="cloudsContainer"
@@ -16,7 +15,7 @@
 
     <div id="postSummaryContainer">
       <div v-for="(post, index) in posts" v-show="!selectedPost" :key="index" class="postSummary">
-        <div class="link" @click="selectedPost=post" v-html="post.title" />
+        <div class="link" @click="selectPost(post.index)" v-html="post.title" />
         <div v-html="post.date" />
       </div>
     </div>
@@ -28,7 +27,7 @@
         </div>
         <div class="divider" />
         <div id="shippingBody">
-          <div class="back" @click="selectedPost=null">
+          <div class="back" @click="selectPost(null)">
             X
           </div>
           <div id="stamp">
@@ -51,15 +50,15 @@
 <script>
 import Component from 'vue-class-component';
 import {
-  select, interval, forceSimulation, forceY
+  select, interval, forceSimulation, forceY,
 } from 'd3';
-import marked from 'marked';
+import { loadPosts } from '@/utility';
 
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../static/images/bubble.png';
 
 
-const NUM_POSTS = 5;
+const NUM_POSTS = 6;
 export default
 @Component()
 class Bubbles {
@@ -80,33 +79,7 @@ class Bubbles {
   }
 
   async created() {
-    let posts = [];
-    for(let i = NUM_POSTS; i > 0; i--) {
-      posts.push(fetch(`/static/bubbles/${i}.md`));
-    }
-    posts = await Promise.all(posts);
-    posts = posts.map(async (post) => post.text());
-    posts = await Promise.all(posts);
-    posts = posts.map((post) => {
-      const tokens = marked.lexer(post);
-      let title = tokens.find((x) => x.type === 'heading');
-      let [date] = tokens.filter((x) => x.type === 'paragraph');
-
-      [title, date] = [title, date].map((_raw) => {
-        const raw = [_raw];
-        raw.links = {};
-        return marked.parser(raw);
-      });
-
-      const fullText = marked
-        .parser(tokens)
-        .replace(/\.\//g, '/static/bubbles/');
-
-      return { title, date, fullText };
-    });
-
-    posts.forEach((post, index) => { post.index = posts.length - index; });
-    this.posts = posts;
+    await loadPosts('bubbles', NUM_POSTS, this);
 
     const player = window.videojs(this.$refs.backgroundVid);
     if(this.$route.query.video) {
@@ -127,6 +100,16 @@ class Bubbles {
     }
   }
 
+  selectPost(index) {
+    if(index) {
+      this.selectedPost = this.posts[this.posts.length - index];
+    } else {
+      this.selectedPost = index;
+    }
+
+    this.$router.push({ query: { post: index } });
+  }
+
   generateUUID() {
     return '66-6-6-6-666'.replace(/6/g, (_) => (`${Math.random().toString(16)}00000`).slice(2, 6));
   }
@@ -138,7 +121,7 @@ class Bubbles {
       .selectAll('g.bubble')
       .data(this.bubbles);
     nodes.exit().remove();
-    
+
     const nodeEnter = nodes.enter()
       .append('svg:g')
       .attr('class', 'bubble')
@@ -154,7 +137,7 @@ class Bubbles {
       .attr('y', -25)
       .attr('height', 50)
       .attr('width', 50)
-      .attr('opacity', .7);
+      .attr('opacity', 0.7);
   }
 
   mounted() {
@@ -177,8 +160,8 @@ class Bubbles {
       this.updateGraphic();
     }, 500);
 
-    console.log('hello', this.simulation.nodes())
-    // move the bubble around the page on every tick using a loose physics approximation
+    console.log('hello', this.simulation.nodes());
+    //move the bubble around the page on every tick using a loose physics approximation
     this.simulation
       .alpha(1)
       .alphaTarget(1)
@@ -187,7 +170,7 @@ class Bubbles {
       .force('source', (a, b) => {
         this.bubbles.forEach((bubble) => {
           const directionX = bubble.vx > 0 ? 1 : -1;
-          bubble.vx = Math.abs(bubble.vx)
+          bubble.vx = Math.abs(bubble.vx);
           //loose model for friction, does not go negative cause that would be bad
           bubble.vx = Math.max(bubble.vx - 0.006 * Math.sqrt(bubble.vx), 0.0000001);
           //the wind
@@ -203,13 +186,13 @@ class Bubbles {
           const dy = this.mouseData.y - bubble.y || -1e-6;
           const proximity = Math.sqrt((dx ** 2) + (dy ** 2));
           const magneticForce = 1 / proximity;
-          // too close and it will pop
+          //too close and it will pop
           if(proximity < 20) {
             bubble.vx = 0;
             bubble.vy = 0;
             bubble.x = -1000;
             bubble.y = -1000;
-          } else if(magneticForce > .01) {
+          } else if(magneticForce > 0.01) {
             bubble.vx = dx * magneticForce;
             bubble.vy = dy * magneticForce;
             if(Math.abs(dx) < 2) bubble.vx = 0;
@@ -235,7 +218,7 @@ class Bubbles {
       });
 
     //track the mouse
-    window.addEventListener('mousemove', e => {
+    window.addEventListener('mousemove', (e) => {
       this.mouseData.x = e.clientX;
       this.mouseData.y = e.clientY;
     });

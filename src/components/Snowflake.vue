@@ -8,12 +8,12 @@
     </div>
 
     <div v-for="(post, index) in posts" :key="index" class="postSummary">
-      <div class="link" @click="selectedPost=post" v-html="post.title" />
+      <div class="link" @click="selectPost(post.index)" v-html="post.title" />
       <div v-html="post.date" />
     </div>
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
-      <div class="back" @click="selectedPost=null">
+      <div class="back" @click="selectPost(null)">
         ←
       </div>
       <div id="postContentBox">
@@ -29,7 +29,7 @@
 <script>
 import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
-import marked from 'marked';
+import { loadPosts } from '@/utility';
 
 const NUM_POSTS = 6;
 export default
@@ -61,31 +61,18 @@ class Snowflake {
   }
 
   async created() {
-    let posts = [];
-    for(let i = NUM_POSTS; i > 0; i--) {
-      posts.push(fetch(`/static/snowflake/${i}.md`));
+    const posts = [];
+    loadPosts('snowflake', NUM_POSTS, this);
+  }
+
+  selectPost(index) {
+    if(index) {
+      this.selectedPost = this.posts[this.posts.length - index];
+    } else {
+      this.selectedPost = index;
     }
-    posts = await Promise.all(posts);
-    posts = posts.map(async (post) => post.text());
-    posts = await Promise.all(posts);
-    posts = posts.map((post) => {
-      const tokens = marked.lexer(post);
-      let title = tokens.find((x) => x.type === 'heading');
-      let [date] = tokens.filter((x) => x.type === 'paragraph');
 
-      [title, date] = [title, date].map((_raw) => {
-        const raw = [_raw];
-        raw.links = {};
-        return marked.parser(raw);
-      });
-
-      const fullText = marked(post);
-      return {
-        title, date, fullText,
-      };
-    });
-
-    this.posts = posts;
+    this.$router.push({ query: { post: index } });
   }
 }
 </script>
@@ -152,6 +139,7 @@ class Snowflake {
       padding-left: 2px;
       border-left: double 5px black;
       position: relative;
+      min-height: 100vh;
 
       h1 {
         margin-top: 0;
