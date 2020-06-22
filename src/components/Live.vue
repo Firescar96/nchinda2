@@ -7,6 +7,23 @@
       <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
       <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml">
     </video>
+
+    <div id="chatSideBar">
+      <h3 id="chatTitle">
+        Trollbox
+      </h3>
+      <div id="nameSelectionBox">
+        <p>My Name:</p>
+        <input id="nameSelection" v-model="myName">
+      </div>
+      <div id="chatMessages" ref="chatMessages">
+        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.name == 'Meta'}">
+          <span>{{ message.name }}</span>:
+          {{ message.body }}
+        </div>
+      </div>
+      <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
+    </div>
   </div>
 </template>
 
@@ -17,6 +34,14 @@ import Component from 'vue-class-component';
 export default
 @Component()
 class Live {
+  data() {
+    return {
+      messages: [{name: 'Meta', body: 'Welcome, make sure to set your name above.'}],
+      newMessage: '',
+      myName: '',
+    };
+  }
+
   mounted() {
     window.videojs(this.$refs.liveVid, {
     //autoplay: true,
@@ -26,6 +51,37 @@ class Live {
         pictureInPictureToggle: false,
       },
     });
+
+    let route = window.location.href;
+    if(window.location.hostname.includes('localhost')) {
+      route = route.replace(/:\d+/, ':8081');
+    }
+
+    route = route.replace('https', 'wss').replace('http', 'wss');
+
+    this.websocket = new WebSocket(route);
+
+    this.websocket.onmessage = ({data}) => {
+      this.addMessage(JSON.parse(data));
+    };
+  }
+
+  sendChat() {
+    const message = {
+      name: this.myName,
+      body: this.newMessage,
+    };
+
+    this.websocket.send(JSON.stringify(message));
+    this.newMessage = '';
+
+    this.addMessage(message);
+  }
+
+  async addMessage(data) {
+    this.messages.push(data);
+    await this.$nextTick();
+    this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
   }
 }
 </script>
@@ -37,6 +93,18 @@ class Live {
   width: 100vw;
   height: 100vh;
   z-index: 200;
+  display: flex;
+  flex-direction: row;
+  color: white;
+
+  input {
+    background: transparent;
+    outline: none;
+    border: none;
+    border-bottom: solid 1px white;
+    padding: 0 5px;
+    color: white;
+  }
 
   /*
     Player Skin Designer for Video.js
@@ -76,97 +144,128 @@ class Live {
     /* The main font color changes the ICON COLORS as well as the text */
     color: $primary-foreground-color;
     height: 100%;
-    width: 100%;
-  }
+    flex: 1;
 
-  /* The "Big Play Button" is the play button that shows before the video plays.
-    To center it set the align values to center and middle. The typical location
-    of the button is the center, but there is trend towards moving it to a corner
-    where it gets out of the way of valuable content in the poster image.*/
-  .vjs-default-skin .vjs-big-play-button {
-    /* The font size is what makes the big play button...big.
-      All width/height values use ems, which are a multiple of the font size.
-      If the .video-js font-size is 10px, then 3em equals 30px.*/
-    font-size: 2.5em;
+    video {
+      outline: none;
+    }
 
-    /* We're using SCSS vars here because the values are used in multiple places.
-      Now that font size is set, the following em values will be a multiple of the
-      new font size. If the font-size is 3em (30px), then setting any of
-      the following values to 3em would equal 30px. 3 * font-size. */
-    $big-play-width: 2em;
-    /* 1.5em = 45px default */
-    $big-play-height: 1.5em;
+    /* The default color of control backgrounds is mostly black but with a little
+      bit of blue so it can still be seen on all-black video frames, which are common. */
+    .vjs-control-bar,
+    .vjs-big-play-button,
+    .vjs-menu-button .vjs-menu-content {
+      /* IE8 - has no alpha support */
+      background-color: $primary-background-color;
+      /* Opacity: 1.0 = 100%, 0.0 = 0% */
+      background-color: rgba($primary-background-color, 0.9);
+    }
 
-    line-height: $big-play-height;
-    height: $big-play-height;
-    width: $big-play-width;
+    // Make a slightly lighter version of the main background
+    // for the slider background.
+    $slider-bg-color: lighten($primary-background-color, 90%);
+    /* Slider - used for Volume bar and Progress bar */
+    .vjs-slider {
+      background-color: $slider-bg-color;
+      background-color: rgba($slider-bg-color, 0.9);
+    }
 
-    /* 0.06666em = 2px default */
-    border: 0.06666em solid $primary-foreground-color;
-    /* 0.3em = 9px default */
-    border-radius: 0.2em;
+    /* The slider bar color is used for the progress bar and the volume bar
+      (the first two can be removed after a fix that's coming) */
+    .vjs-volume-level,
+    .vjs-play-progress,
+    .vjs-slider-bar {
+      background: $primary-foreground-color;
+    }
 
-    @if $center-big-play-button {
-      /* Align center */
+    /* The main progress bar also has a bar that shows how much has been loaded. */
+    .vjs-load-progress {
+      /* For IE8 we'll lighten the color */
+      background: ligthen($slider-bg-color, 80%);
+      /* Otherwise we'll rely on stacked opacities */
+      background: rgba($slider-bg-color, 0.8);
+    }
+
+    /* The load progress bar also has internal divs that represent
+      smaller disconnected loaded time ranges */
+    .vjs-load-progress div {
+      /* For IE8 we'll lighten the color */
+      background: ligthen($slider-bg-color, 80%);
+      /* Otherwise we'll rely on stacked opacities */
+      background: rgba($slider-bg-color, 0.9);
+    }
+
+    &:hover .vjs-big-play-button {
+      background-color: rgba(0,0,0,.95);
+      border-color: #a0422d;
+    }
+
+    /* The "Big Play Button" is the play button that shows before the video plays.
+      To center it set the align values to center and middle. The typical location
+      of the button is the center, but there is trend towards moving it to a corner
+      where it gets out of the way of valuable content in the poster image.*/
+    .vjs-big-play-button {
+      font-size: 2.5em;
+      border: 0.06666em solid $primary-foreground-color;
+      border-radius: 0.2em;
+      outline: none;
       left: 50%;
       top: 50%;
-      margin-left: -($big-play-width / 2);
-      margin-top: -($big-play-height / 2);
-    } @else {
-      /* Align top left. 0.5em = 15px default */
-      left: 0.5em;
-      top: 0.5em;
+      transform: translate(-50%, -50%);
     }
   }
 
-  /* The default color of control backgrounds is mostly black but with a little
-    bit of blue so it can still be seen on all-black video frames, which are common. */
-  .video-js .vjs-control-bar,
-  .video-js .vjs-big-play-button,
-  .video-js .vjs-menu-button .vjs-menu-content {
-    /* IE8 - has no alpha support */
-    background-color: $primary-background-color;
-    /* Opacity: 1.0 = 100%, 0.0 = 0% */
-    background-color: rgba($primary-background-color, 0.9);
-  }
+  #chatSideBar {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    background: #111;
 
-  // Make a slightly lighter version of the main background
-  // for the slider background.
-  $slider-bg-color: lighten($primary-background-color, 90%);
-  /* Slider - used for Volume bar and Progress bar */
-  .video-js .vjs-slider {
-    background-color: $slider-bg-color;
-    background-color: rgba($slider-bg-color, 0.9);
-  }
+    #chatTitle {
+      color: #f008;
+      padding: 0 10px;
+    }
 
-  /* The slider bar color is used for the progress bar and the volume bar
-    (the first two can be removed after a fix that's coming) */
-  .video-js .vjs-volume-level,
-  .video-js .vjs-play-progress,
-  .video-js .vjs-slider-bar {
-    background: $primary-foreground-color;
-  }
+    #nameSelectionBox {
+      margin: 10px 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0 10px;
 
-  /* The main progress bar also has a bar that shows how much has been loaded. */
-  .video-js .vjs-load-progress {
-    /* For IE8 we'll lighten the color */
-    background: ligthen($slider-bg-color, 80%);
-    /* Otherwise we'll rely on stacked opacities */
-    background: rgba($slider-bg-color, 0.8);
-  }
+      p {
+        margin: 0 2px;
+      }
 
-  /* The load progress bar also has internal divs that represent
-    smaller disconnected loaded time ranges */
-  .video-js .vjs-load-progress div {
-    /* For IE8 we'll lighten the color */
-    background: ligthen($slider-bg-color, 80%);
-    /* Otherwise we'll rely on stacked opacities */
-    background: rgba($slider-bg-color, 0.9);
-  }
+      span {
+        width: 20%;
+      }
 
-  .video-js:hover .vjs-big-play-button {
-    background-color: rgba(0,0,0,.95);
-    border-color: #a0422d;
+      input {
+        flex: 1;
+        margin: 10px auto;
+      }
+    }
+
+    #chatMessages {
+      flex: 1;
+      font-size: 16px;
+      border-bottom: solid 2px white;
+      padding: 0 10px;
+      overflow-y: auto;
+
+      .message {
+        padding: 10px 0;
+
+        &.meta {
+          color: #ddd;
+        }
+      }
+    }
+
+    input#chatInput {
+      height: 40px;
+      margin: 0 10px;
+    }
   }
 }
 </style>
