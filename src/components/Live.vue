@@ -10,8 +10,11 @@
 
     <div id="chatSideBar">
       <h3 id="chatTitle">
-        Trollbox
+        conTROLLbox
       </h3>
+      <div id="sync" @click="syncViewers('seek')">
+        Sync All Viewers
+      </div>
       <div id="nameSelectionBox">
         <p>My Name:</p>
         <input id="nameSelection" v-model="myName">
@@ -43,14 +46,16 @@ class Live {
   }
 
   mounted() {
-    window.videojs(this.$refs.liveVid, {
+    this.video = window.videojs(this.$refs.liveVid, {
     //autoplay: true,
       preload: 'auto',
       controls: true,
       controlBar: {
         pictureInPictureToggle: false,
       },
+      liveui: true,
     });
+    window.video = this.video;
 
     let route = window.location.href;
     if(window.location.hostname.includes('localhost')) {
@@ -62,12 +67,37 @@ class Live {
     this.websocket = new WebSocket(route);
 
     this.websocket.onmessage = ({data}) => {
-      this.addMessage(JSON.parse(data));
+      const message = JSON.parse(data);
+      switch(message.flag) {
+        case 'seek':
+        case 'play':
+        case 'pause':
+          this.remoteSync = true;
+          this.video.currentTime(message.time);
+          if(['play', 'pause'].includes(message.flag)) {this.video[message.flag]();}
+          break;
+        default:
+          this.addMessage(message);
+      }
     };
+
+    let userEventHandler =  (e) => {
+      if(this.remoteSync) {
+        this.remoteSync = false;
+        return;
+      }
+      this.syncViewers(e.type);
+    };
+    this.video.on('play', userEventHandler);
+    this.video.on('pause', userEventHandler);
+    this.video.controlBar.progressControl.seekBar.on('mouseup', () => {
+      userEventHandler({type: 'seek'});
+    });
   }
 
   sendChat() {
     const message = {
+      flag: 'chatMessage',
       name: this.myName,
       body: this.newMessage,
     };
@@ -82,6 +112,15 @@ class Live {
     this.messages.push(data);
     await this.$nextTick();
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+  }
+
+  syncViewers(flag) {
+    const message = {
+      flag,
+      time: this.video.currentTime(),
+    };
+
+    this.websocket.send(JSON.stringify(message));
   }
 }
 </script>
@@ -220,6 +259,14 @@ class Live {
     display: flex;
     flex-direction: column;
     background: #111;
+
+    #sync {
+      padding: 10px 20px;
+      margin: auto;
+      background: #222;
+      border-radius: 5px;
+      cursor: pointer;
+    }
 
     #chatTitle {
       color: #f008;
