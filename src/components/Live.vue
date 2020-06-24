@@ -12,8 +12,8 @@
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
-      <div id="sync" @click="syncViewers('seek')">
-        Sync All Viewers
+      <div id="sync" @click="sendMessage('sync-request')">
+        Sync To Others
       </div>
       <div id="nameSelectionBox">
         <p>My Name:</p>
@@ -33,6 +33,8 @@
 <script>
 
 import Component from 'vue-class-component';
+import videojs from 'video.js';
+import seekButtons from 'videojs-seek-buttons';
 
 export default
 @Component()
@@ -42,12 +44,15 @@ class Live {
       messages: [{name: 'Meta', body: 'Welcome, make sure to set your name above.'}],
       newMessage: '',
       myName: '',
+      triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
+      loadingSyncComplete: false, // on the first load sync to the end of the stream to force videojs to finish loading and trigger a 'playing' event
+      firstPlaySync: false, //on the first play sync to others
+      lastSyncedTime: null,
     };
   }
 
   mounted() {
-    this.video = window.videojs(this.$refs.liveVid, {
-    //autoplay: true,
+    this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
       controls: true,
       controlBar: {
@@ -55,24 +60,31 @@ class Live {
       },
       liveui: true,
     });
-    window.video = this.video;
+    
+    this.video.seekButtons({
+      forward: 30,
+      back: 10,
+      backIndex: 0,
+    });
 
     let route = window.location.href;
-    if(window.location.hostname.includes('localhost')) {
-      route = route.replace(/:\d+/, ':8081');
-    }
+    route = route.replace(/:\d+/, ':8081');
 
     route = route.replace('https', 'wss').replace('http', 'wss');
+
 
     this.websocket = new WebSocket(route);
 
     this.websocket.onmessage = ({data}) => {
       const message = JSON.parse(data);
       switch(message.flag) {
-        case 'seek':
+        case 'sync-request':
+          this.sendMessage('sync-response');
+          break;
         case 'play':
         case 'pause':
-          this.remoteSync = true;
+          this.triggerRemoteSync = false;
+        case 'sync-response':
           this.video.currentTime(message.time);
           if(['play', 'pause'].includes(message.flag)) {this.video[message.flag]();}
           break;
@@ -81,18 +93,34 @@ class Live {
       }
     };
 
-    let userEventHandler =  (e) => {
-      if(this.remoteSync) {
-        this.remoteSync = false;
+    let userEventHandler =  (flag) => {
+      if(!this.triggerRemoteSync) {
+        this.triggerRemoteSync = true;
         return;
       }
-      this.syncViewers(e.type);
+      this.sendMessage(flag);
     };
-    this.video.on('play', userEventHandler);
-    this.video.on('pause', userEventHandler);
-    this.video.controlBar.progressControl.seekBar.on('mouseup', () => {
-      userEventHandler({type: 'seek'});
+    this.video.on('play', (e) => {
+      if(!this.loadingSyncComplete) {
+        this.loadingSyncComplete = true;
+        // this makes sure that to start we seek to a time that's within bounds
+        this.video.currentTime(this.video.liveTracker.seekableEnd())
+      }
+      userEventHandler(e.type);
     });
+    
+    this.video.on('pause', e => userEventHandler(e.type));
+    this.video.controlBar.progressControl.seekBar.on('mouseup', () => userEventHandler('sync-trigger'));
+    this.video.controlBar.children_[0].on('click', () => userEventHandler('sync-trigger'));
+    this.video.controlBar.children_[2].on('click', () => userEventHandler('sync-trigger'));
+
+    this.video.on('playing', () => {
+      // on first play request an update to the current time
+      if(!this.firstPlaySync) {
+        this.firstPlaySync = true;
+        this.sendMessage('sync-request');
+      }
+    })
   }
 
   sendChat() {
@@ -114,10 +142,11 @@ class Live {
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
   }
 
-  syncViewers(flag) {
+  sendMessage(flag) {
     const message = {
       flag,
       time: this.video.currentTime(),
+      synced: this.loadingSyncComplete,
     };
 
     this.websocket.send(JSON.stringify(message));
@@ -126,6 +155,7 @@ class Live {
 </script>
 
 <style lang="scss">
+@import 'videojs-seek-buttons/dist/videojs-seek-buttons.css';
 
 #livePage {
   position: absolute;

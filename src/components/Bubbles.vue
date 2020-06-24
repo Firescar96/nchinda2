@@ -53,6 +53,7 @@ import {
   select, interval, forceSimulation, forceY,
 } from 'd3';
 import { loadPosts } from '@/utility';
+import videojs from 'video.js';
 
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../static/images/bubble.png';
@@ -81,7 +82,7 @@ class Bubbles {
   async created() {
     await loadPosts('bubbles', NUM_POSTS, this);
 
-    const player = window.videojs(this.$refs.backgroundVid);
+    const player = videojs(this.$refs.backgroundVid);
     if(this.$route.query.video) {
       player.src({
         src: `/static/videos/${this.$route.query.video}/master.m3u8`,

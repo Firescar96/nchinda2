@@ -4,7 +4,7 @@
   "description": "my website",
   "author": "Nchinda Nchinda <nchinda2@gmail.com>",
   "scripts": {
-    "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
+    "dev": "webpack-dev-server --inline --progress --host 0.0.0.0  --config build/webpack.dev.conf.js",
     "start": "npm run dev",
     "lint": "eslint --ext .js,.vue src",
     "build": "node --max-old-space-size=4096 build/build.js"
@@ -16,6 +16,8 @@
     "d3": "^5.16.0",
     "express": "^4.17.1",
     "marked": "^1.1.0",
+    "video.js": "^7.8.2",
+    "videojs-seek-buttons": "^1.6.0",
     "vue": "^2.6.11",
     "vue-class-component": "^7.2.3",
     "vue-property-decorator": "^9.0.0",
