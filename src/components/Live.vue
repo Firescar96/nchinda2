@@ -20,9 +20,10 @@
         <input id="nameSelection" v-model="myName">
       </div>
       <div id="chatMessages" ref="chatMessages">
-        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.name == 'Meta'}">
-          <span>{{ message.name }}</span>:
-          {{ message.body }}
+        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta}">
+          <p v-if="!message.myMessage">{{ message.name }}:</p>
+          <p class="indentMessage" :class="{myMessage: message.myMessage}">{{ message.text }}</p>
+          <a class="indentMessage" v-if="message.action == 'jumpToTime'" @click="jumpToTime(message.time)">Jump to Time</a>
         </div>
       </div>
       <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
@@ -36,15 +37,20 @@ import Component from 'vue-class-component';
 import videojs from 'video.js';
 import engineio from 'engine.io-client';
 import seekButtons from 'videojs-seek-buttons';
+import { generateName } from '@/utility';
+
+const SKIP_BACK_SECONDS = 10;
+const SKIP_FORWARD_SECONDS = 30;
+
 
 export default
 @Component()
 class Live {
   data() {
     return {
-      messages: [{name: 'Meta', body: 'Welcome, make sure to set your name above.'}],
+      messages: [{isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.'}],
       newMessage: '',
-      myName: '',
+      myName: generateName(),
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
       firstPlaySync: false, //on the first play sync to others
       lastSyncedTime: null,
@@ -64,15 +70,14 @@ class Live {
     
     // init seekbuttons plugin
     this.video.seekButtons({
-      forward: 30,
-      back: 10,
+      forward: SKIP_FORWARD_SECONDS,
+      back: SKIP_BACK_SECONDS,
       backIndex: 0,
     });
     
-    let route = window.location.href
-      .replace(/:\d+/, ':8081')
-      .replace('https', 'wss')
-      .replace('http', 'wss');
+    const route = new URL(window.location.href);
+    route.protocol = route.protocol.replace('http', 'ws');
+    if(route.port) route.port = 8080
 
     // save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
@@ -83,7 +88,7 @@ class Live {
       'sync': () => this.sendMessage({flag: 'sync-trigger'}),
     }
   
-    this.websocket = new engineio(route, {transports: ['websocket']});
+    this.websocket = new engineio(route.href, {transports: ['websocket']});
     // join can only be issued once and determines which group of viewers is joined
     // a future implementation will allow different groups to all watch the same stream
     this.websocket.send(JSON.stringify({flag: 'join', name: this.$route.params.stream}))
@@ -95,6 +100,16 @@ class Live {
           if(!this.firstPlaySync) break;
           this.sendMessage({flag: 'sync-response'});
           break;
+        case 'peer-disconnect':
+          this.addMessage({
+            isMeta: true,
+            name: 'Meta',
+            text: message.name + ' disconnected',
+            action: 'jumpToTime',
+            time: message.lastFrameTime-SKIP_BACK_SECONDS,
+          });
+      
+          break
         case 'pong':
           break;
         case 'play':
@@ -116,7 +131,7 @@ class Live {
 
     this.websocket.on('open', () => {
       setInterval(() => {
-        this.sendMessage({flag: 'ping'})
+        this.sendMessage({flag: 'ping', name:this.myName})
       }, 500)
     })
 
@@ -138,20 +153,26 @@ class Live {
     })
   }
 
+  jumpToTime(time) {
+    this.video.currentTime(time);
+    this.sendMessage({flag: 'sync-trigger'});
+  }
+
   sendChat() {
     const message = {
       flag: 'chatMessage',
       name: this.myName,
-      body: this.newMessage,
+      text: this.newMessage,
     };
 
     this.sendMessage(message);
     this.newMessage = '';
 
-    this.addMessage(message);
+    this.addMessage(message, true);
   }
 
-  async addMessage(data) {
+  async addMessage(data, myMessage) {
+    data.myMessage = myMessage;
     this.messages.push(data);
     await this.$nextTick();
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
@@ -295,7 +316,7 @@ class Live {
   }
 
   #chatSideBar {
-    width: 250px;
+    width: 300px;
     display: flex;
     flex-direction: column;
     background: #111;
@@ -341,10 +362,27 @@ class Live {
       overflow-y: auto;
 
       .message {
-        padding: 10px 0;
+        padding: 8px 0;
 
         &.meta {
-          color: #ddd;
+          color: #aaa;
+        }
+        
+        p {
+          margin: 5px 0;
+        }
+        
+        .indentMessage {
+          margin-left: 20px;
+        }
+
+        .myMessage {
+          text-align: right;
+        }
+
+        a {
+          color: #ffff16a1;
+          cursor: ew-resize;
         }
       }
     }
