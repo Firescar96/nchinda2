@@ -12,7 +12,7 @@
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
-      <div id="sync" @click="sendMessage('sync-request')">
+      <div id="sync" @click="sendMessage({flag: 'sync-request'})">
         Sync To Others
       </div>
       <div id="nameSelectionBox">
@@ -34,6 +34,7 @@
 
 import Component from 'vue-class-component';
 import videojs from 'video.js';
+import engineio from 'engine.io-client';
 import seekButtons from 'videojs-seek-buttons';
 
 export default
@@ -45,13 +46,13 @@ class Live {
       newMessage: '',
       myName: '',
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
-      loadingSyncComplete: false, // on the first load sync to the end of the stream to force videojs to finish loading and trigger a 'playing' event
       firstPlaySync: false, //on the first play sync to others
       lastSyncedTime: null,
     };
   }
 
   mounted() {
+    // initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
       controls: true,
@@ -61,64 +62,78 @@ class Live {
       liveui: true,
     });
     
+    // init seekbuttons plugin
     this.video.seekButtons({
       forward: 30,
       back: 10,
       backIndex: 0,
     });
+    
+    let route = window.location.href
+      .replace(/:\d+/, ':8081')
+      .replace('https', 'wss')
+      .replace('http', 'wss');
 
-    let route = window.location.href;
-    route = route.replace(/:\d+/, ':8081');
+    // save the eventhandlers so they can be en/disabled dynamically
+    const eventHandlers = {
+      'play': () => {
+        if(this.firstPlaySync) this.sendMessage({flag: 'play'});
+      },
+      'pause': () => this.sendMessage({flag: 'pause'}),
+      'sync': () => this.sendMessage({flag: 'sync-trigger'}),
+    }
+  
+    this.websocket = new engineio(route, {transports: ['websocket']});
+    // join can only be issued once and determines which group of viewers is joined
+    // a future implementation will allow different groups to all watch the same stream
+    this.websocket.send(JSON.stringify({flag: 'join', name: this.$route.params.stream}))
 
-    route = route.replace('https', 'wss').replace('http', 'wss');
-
-
-    this.websocket = new WebSocket(route);
-
-    this.websocket.onmessage = ({data}) => {
+    this.websocket.on('message', (data) => {
       const message = JSON.parse(data);
       switch(message.flag) {
         case 'sync-request':
-          this.sendMessage('sync-response');
+          if(!this.firstPlaySync) break;
+          this.sendMessage({flag: 'sync-response'});
+          break;
+        case 'pong':
           break;
         case 'play':
         case 'pause':
-          this.triggerRemoteSync = false;
+        case 'sync-trigger':
         case 'sync-response':
-          this.video.currentTime(message.time);
-          if(['play', 'pause'].includes(message.flag)) {this.video[message.flag]();}
+          if(!this.firstPlaySync) break;
+          this.video.currentTime(message.lastFrameTime);
+          if(['play', 'pause'].includes(message.flag)) {
+            this.video.off(message.flag, eventHandlers[message.flag])
+            this.video[message.flag]();
+            this.video.on(message.flag, eventHandlers[message.flag])
+          }
           break;
         default:
           this.addMessage(message);
       }
-    };
-
-    let userEventHandler =  (flag) => {
-      if(!this.triggerRemoteSync) {
-        this.triggerRemoteSync = true;
-        return;
-      }
-      this.sendMessage(flag);
-    };
-    this.video.on('play', (e) => {
-      if(!this.loadingSyncComplete) {
-        this.loadingSyncComplete = true;
-        // this makes sure that to start we seek to a time that's within bounds
-        this.video.currentTime(this.video.liveTracker.seekableEnd())
-      }
-      userEventHandler(e.type);
     });
-    
-    this.video.on('pause', e => userEventHandler(e.type));
-    this.video.controlBar.progressControl.seekBar.on('mouseup', () => userEventHandler('sync-trigger'));
-    this.video.controlBar.children_[0].on('click', () => userEventHandler('sync-trigger'));
-    this.video.controlBar.children_[2].on('click', () => userEventHandler('sync-trigger'));
+
+    this.websocket.on('open', () => {
+      setInterval(() => {
+        this.sendMessage({flag: 'ping'})
+      }, 500)
+    })
+
+    // onReady setup the handlers for different user interactions
+    this.video.on('ready', () => {
+      this.video.on('play', eventHandlers.play);
+      this.video.on('pause', eventHandlers.pause);
+      this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.sync);
+      this.video.controlBar.seekForward.on('click', eventHandlers.sync);
+      this.video.controlBar.seekBack.on('click', eventHandlers.sync);
+    })
 
     this.video.on('playing', () => {
       // on first play request an update to the current time
       if(!this.firstPlaySync) {
         this.firstPlaySync = true;
-        this.sendMessage('sync-request');
+        this.sendMessage({flag: 'sync-request'});
       }
     })
   }
@@ -130,7 +145,7 @@ class Live {
       body: this.newMessage,
     };
 
-    this.websocket.send(JSON.stringify(message));
+    this.sendMessage(message);
     this.newMessage = '';
 
     this.addMessage(message);
@@ -142,13 +157,8 @@ class Live {
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
   }
 
-  sendMessage(flag) {
-    const message = {
-      flag,
-      time: this.video.currentTime(),
-      synced: this.loadingSyncComplete,
-    };
-
+  sendMessage(message) {
+    message.lastFrameTime = this.video.currentTime();
     this.websocket.send(JSON.stringify(message));
   }
 }

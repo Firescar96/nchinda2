@@ -1,59 +1,97 @@
 import url from 'url';
-import WebSocket from 'ws';
-const liveWS = new WebSocket.Server({ noServer: true });
+import engineio from 'engine.io';
+import { httpServer, httpsServer, httpsPort } from './server.mjs';
+import { WSClient } from './client.mjs';
+const liveWS = engineio.attach(httpsServer, {
+  pingTimeout: 2000,
+  pingInterval: 10000,
+  transports: ['websocket'],
+});
 
-let syncTimings = [];
-let clientsWaitingToSync = []
 
-liveWS.on('connection', function connection(ws, request) {
-  const streamName = url.parse(request.url).pathname.split('/')[2];
+class ClientGroupManager {
+  constructor(name) {
+    this.name = name;
+    this.clients = {};
+    this.clientsWaitingToSync = [] // clients who have requested a timecheck
+    this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
+  }
 
-  ws.on('message', function incoming(rawdata) {
-    const data = JSON.parse(rawdata);
+  addClient(ws) {
+    // ws shouldn't be in the global scope of arguments, but must be scoped to this function
+    this.clients[ws.id] = new WSClient(ws);
 
-    switch(data.flag) {
-      case 'sync-response':
-        // -1 so we ignore the original requester and don't wait for them to respond
-        let numClients = -1;
-        liveWS.clients.forEach(client => {if(client.readyState === WebSocket.OPEN) numClients++});
+    ws.on('close', () => {
+      delete this.clients[ws.id];
+    })
 
-        syncTimings.push(data);
-        if(syncTimings.length == numClients) {
+    ws.on('message', (rawdata) => {
+      const data = JSON.parse(rawdata);
+      if (!this.clients[ws.id]) return;
+      switch (data.flag) {
+        case 'sync-response':
+          this.clients[ws.id].lastFrameTime = data.lastFrameTime;
+          this.clients[ws.id].ackedSyncRequest = true;
+
+          const numSyncResponses = Object.values(this.clients).reduce((a, b) => b.ackedSyncRequest ? a + 1 : a, 0)
+
+          if (numSyncResponses < this.numResponsesRequested) break;
+
           let minimumTime = Number.MAX_SAFE_INTEGER;
-          syncTimings.forEach(timing => {
-            if(!timing.synced) return;
+          Object.values(this.clients).forEach(client => {
+            if (!client.ackedSyncRequest) return;
 
-            minimumTime = Math.min(minimumTime, timing.time)
+            minimumTime = Math.min(minimumTime, client.lastFrameTime)
           })
-          if(minimumTime == Number.MAX_SAFE_INTEGER) break;
-          clientsWaitingToSync.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
-              const responseMessage = {flag:'sync-response', time:minimumTime}
-              client.send(JSON.stringify(responseMessage));
-            }
+          if (minimumTime == Number.MAX_SAFE_INTEGER) break;
+          this.clientsWaitingToSync.forEach(clientWS => {
+            const responseMessage = { flag: 'sync-response', lastFrameTime: minimumTime }
+            clientWS.send(JSON.stringify(responseMessage))
           });
-          
-          clientsWaitingToSync = [];
-        }
 
-        break;
-      case 'sync-request':
-        syncTimings = [];  
-        clientsWaitingToSync.push(ws)
-        liveWS.clients.forEach(function each(client) {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(rawdata);
-          }
-        });
-        break;
-      default:
-        liveWS.clients.forEach(function each(client) {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(rawdata);
-          }
-        });
-    }
-  });
+          this.clientsWaitingToSync = [];
+          Object.values(this.clients).forEach((client) => {
+            client.ackedSyncRequest = false
+          });
+
+          break;
+        case 'sync-request':
+          this.numResponsesRequested = Object
+            .keys(this.clients).length - 1;
+          this.numSyncResponses = 0;
+          this.clientsWaitingToSync.push(ws)
+
+          //if there are clients waiting then we are already doing a syncrequest
+          //but we still have to do another if they want one
+          Object.values(this.clients).forEach((client) => {
+            if (client.id == ws.id) return;
+            client.websocket.send(rawdata);
+            client.ackedSyncRequest = false
+          });
+          break;
+        case 'ping':
+          this.clients[ws.id].update(data)
+          ws.send(JSON.stringify({ flag: 'pong' }))
+          break;
+        // default is to echo the data to everyone
+        default:
+          Object.values(this.clients).forEach((client) => {
+            if (client.id == ws.id) return;
+            client.websocket.send(rawdata);
+          });
+      }
+    });
+  }
+}
+
+const streamClients = {}
+
+liveWS.on('connection', function connection(socket) {
+  socket.once('message', (data) => {
+    const message = JSON.parse(data)
+    streamClients[message.name] = streamClients[message.name] || new ClientGroupManager(message.name);
+    streamClients[message.name].addClient(socket);
+  })
 });
 
 export default liveWS;
