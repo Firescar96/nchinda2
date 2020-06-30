@@ -1,3 +1,8 @@
+# 2.2.1
+### Bug Fixes
+
+* Add debounce to play/pause messages to mitigate refresh loops
+
 # 2.2.0
 ### Features
 

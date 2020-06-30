@@ -82,6 +82,7 @@ class Live {
     // save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
       'play': () => {
+        console.log('trigger play');
         if(this.firstPlaySync) this.sendMessage({flag: 'play'});
       },
       'pause': () => this.sendMessage({flag: 'pause'}),
@@ -116,6 +117,7 @@ class Live {
         case 'pause':
         case 'sync-trigger':
         case 'sync-response':
+          console.log('event handler', message.flag, message);
           if(!this.firstPlaySync) break;
           this.video.currentTime(message.lastFrameTime);
           if(['play', 'pause'].includes(message.flag)) {

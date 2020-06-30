@@ -1,11 +1,24 @@
 import { WSClient } from './client.mjs';
 
+const debounce = (func, delay) => {
+    let debounceTimer
+    return function () {
+        const context = this
+        const args = arguments
+        clearTimeout(debounceTimer)
+        debounceTimer
+            = setTimeout(() => func.apply(context, args), delay)
+    }
+}
+
+
 class ClientGroupManager {
     constructor(name) {
         this.name = name;
         this.clients = {};
         this.clientsWaitingToSync = [] // clients who have requested a timecheck
         this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
+        this.broadcastMessage = debounce(this._broadcastMessage, 250)
     }
 
     addClient(ws) {
@@ -68,13 +81,21 @@ class ClientGroupManager {
                     this.clients[ws.id].update(data)
                     ws.send(JSON.stringify({ flag: 'pong' }))
                     break;
+                case 'play':
+                case 'pause':
+                    // these messages get debounced
+                    this.broadcastMessage(rawdata, ws);
                 // default is to echo the data to everyone
                 default:
-                    Object.values(this.clients).forEach((client) => {
-                        if (client.id == ws.id) return;
-                        client.websocket.send(rawdata);
-                    });
+                    this._broadcastMessage(rawdata, ws);
             }
+        });
+    }
+
+    _broadcastMessage(rawdata, ws) {
+        Object.values(this.clients).forEach((client) => {
+            if (client.id == ws.id) return;
+            client.websocket.send(rawdata);
         });
     }
 }
