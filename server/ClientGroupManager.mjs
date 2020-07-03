@@ -1,24 +1,11 @@
 import { WSClient } from './client.mjs';
 
-const debounce = (func, delay) => {
-    let debounceTimer
-    return function () {
-        const context = this
-        const args = arguments
-        clearTimeout(debounceTimer)
-        debounceTimer
-            = setTimeout(() => func.apply(context, args), delay)
-    }
-}
-
-
 class ClientGroupManager {
     constructor(name) {
         this.name = name;
         this.clients = {};
         this.clientsWaitingToSync = [] // clients who have requested a timecheck
         this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
-        this.broadcastMessage = debounce(this._broadcastMessage, 250)
     }
 
     addClient(ws) {
@@ -27,10 +14,14 @@ class ClientGroupManager {
 
         ws.on('close', () => {
             Object.values(this.clients).forEach((client) => {
-                const message = { flag: 'peer-disconnect', name: this.clients[ws.id].name, lastFrameTime: client.lastFrameTime };
+                const message = { flag: 'peerDisconnect', name: this.clients[ws.id].name, lastFrameTime: client.lastFrameTime };
                 client.websocket.send(JSON.stringify(message));
             });
             delete this.clients[ws.id];
+        })
+
+        ws.on('open', () => {
+            console.log('hello world');
         })
 
         ws.on('message', (rawdata) => {
@@ -39,6 +30,7 @@ class ClientGroupManager {
             switch (data.flag) {
                 case 'sync-response':
                     this.clients[ws.id].lastFrameTime = data.lastFrameTime;
+                    this.clients[ws.id].isPaused = data.isPaused;
                     this.clients[ws.id].ackedSyncRequest = true;
 
                     const numSyncResponses = Object.values(this.clients).reduce((a, b) => b.ackedSyncRequest ? a + 1 : a, 0)
@@ -46,14 +38,20 @@ class ClientGroupManager {
                     if (numSyncResponses < this.numResponsesRequested) break;
 
                     let minimumTime = Number.MAX_SAFE_INTEGER;
+                    let isPaused = false;
                     Object.values(this.clients).forEach(client => {
                         if (!client.ackedSyncRequest) return;
 
                         minimumTime = Math.min(minimumTime, client.lastFrameTime)
+                        isPaused |= client.isPaused;
                     })
                     if (minimumTime == Number.MAX_SAFE_INTEGER) break;
                     this.clientsWaitingToSync.forEach(clientWS => {
-                        const responseMessage = { flag: 'sync-response', lastFrameTime: minimumTime }
+                        const responseMessage = {
+                            flag: 'sync-response',
+                            lastFrameTime: minimumTime,
+                            isPaused,
+                        }
                         clientWS.send(JSON.stringify(responseMessage))
                     });
 
@@ -81,18 +79,14 @@ class ClientGroupManager {
                     this.clients[ws.id].update(data)
                     ws.send(JSON.stringify({ flag: 'pong' }))
                     break;
-                case 'play':
-                case 'pause':
-                    // these messages get debounced
-                    this.broadcastMessage(rawdata, ws);
-                // default is to echo the data to everyone
                 default:
-                    this._broadcastMessage(rawdata, ws);
+                    // default is to echo the data to everyone
+                    this.broadcastMessage(rawdata, ws);
             }
         });
     }
 
-    _broadcastMessage(rawdata, ws) {
+    broadcastMessage(rawdata, ws) {
         Object.values(this.clients).forEach((client) => {
             if (client.id == ws.id) return;
             client.websocket.send(rawdata);

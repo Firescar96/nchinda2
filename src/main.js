@@ -2,6 +2,8 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import marked from 'marked';
 import App from './App';
+import { OverlayScrollbarsPlugin } from 'overlayscrollbars-vue';
+Vue.use(OverlayScrollbarsPlugin);
 
 import router from './router';
 

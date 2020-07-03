@@ -82,7 +82,7 @@ module.exports = {
     'no-script-url': 2,     //No need for these in Meteor!
     'no-self-compare': 2,
     'no-sequences': 2,      //I hate that!
-    'no-shadow': [1, {'hoist': 'functions'}],
+    'no-shadow': [1, { 'hoist': 'functions' }],
     'no-sparse-arrays': 2,
     'no-unreachable': 2,
     'no-with': 2,
@@ -96,7 +96,7 @@ module.exports = {
     }],
     //disallow reassignment of function parameters
     //disallow parameter object manipulation except for specific exclusions
-    'no-param-reassign': ['error', {props: false}],
+    'no-param-reassign': ['error', { props: false }],
     //allow optionalDependencies
     'import/no-extraneous-dependencies': 'error',
     'max-len': 'off',
@@ -135,13 +135,13 @@ module.exports = {
         'allowSingleLine': true,
       },
     ],
-    'camelcase': [2, {'properties': 'always'}],
+    'camelcase': [2, { 'properties': 'always' }],
     'comma-spacing': [2, {
       'before': false,
       'after': true,
     }],
     'comma-style': [2, 'last'],
-    'indent': [2, 2, {'SwitchCase': 1}],
+    'indent': [2, 2, { 'SwitchCase': 1 }],
     'key-spacing': [2, {
       'afterColon': true,
       'beforeColon': false,
@@ -167,10 +167,10 @@ module.exports = {
     }],
     'keyword-spacing': [2, {
       'after': true, 'overrides': {
-        'if': {'after': false},
-        'for': {'after': false},
-        'while': {'after': false},
-        'switch': {'after': false},
+        'if': { 'after': false },
+        'for': { 'after': false },
+        'while': { 'after': false },
+        'switch': { 'after': false },
       },
     }],
     'space-before-blocks': 2,
@@ -179,13 +179,13 @@ module.exports = {
   },
   'overrides': [
     {
-      'files': [ '*.spec.js' ],
+      'files': ['*.spec.js'],
       'globals': {
         assert: true,
       },
       'rules': {
         'func-names': 0,
-        'no-empty': [2, {'allowEmptyCatch': true}],
+        'no-empty': [2, { 'allowEmptyCatch': true }],
       },
     },
   ],

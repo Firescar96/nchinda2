@@ -26,6 +26,8 @@
   </div>
 </template>
 <style lang="scss">
+@import 'overlayscrollbars/css/OverlayScrollbars.css';
+
 html, body {
   margin: 0;
 }

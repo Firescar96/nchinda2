@@ -1,3 +1,18 @@
+# 2.3.0
+
+### Features
+* Chat message is shown on user actions e.g. connect, play, pause, seek, etc.oll
+
+### Bug Fixes
+
+* Remove debounce and debug issue with client event listeners not deactivating for remote actions -> mitigate refresh loops
+* SeekToLive button is triggers a global sync
+* New viewers copy the play/pause status of existing viewers
+
+### Design Updates
+
+* Add overlay-scrollbars-vue
+
 # 2.2.1
 ### Bug Fixes
 

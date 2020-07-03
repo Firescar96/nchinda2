@@ -19,20 +19,22 @@
         <p>My Name:</p>
         <input id="nameSelection" v-model="myName">
       </div>
-      <div id="chatMessages" ref="chatMessages">
+        <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light">
         <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta}">
-          <p v-if="!message.myMessage">{{ message.name }}:</p>
+          <p v-if="!message.myMessage && !message.isMeta">{{ message.name }}:</p>
           <p class="indentMessage" :class="{myMessage: message.myMessage}">{{ message.text }}</p>
-          <a class="indentMessage" v-if="message.action == 'jumpToTime'" @click="jumpToTime(message.time)">Jump to Time</a>
+          <p class="indentMessage" v-if="message.action == 'peerDisconnect'">{{message.name}} disconnected <a  @click="jumpToTime(message.time)">Jump to Time</a></p>
+          <p class="indentMessage" v-if="message.action == 'syncAction'">{{message.name}} pressed the <span class="capitalize">{{toHumanReadable(message.flag)}}</span> button</p>
+          <p class="indentMessage" v-if="message.action == 'peerConnect'">{{message.name}} connected</p>
         </div>
-      </div>
+        </overlay-scrollbars>
       <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
     </div>
   </div>
 </template>
 
 <script>
-
+import Vue from 'vue';
 import Component from 'vue-class-component';
 import videojs from 'video.js';
 import engineio from 'engine.io-client';
@@ -57,6 +59,19 @@ class Live {
     };
   }
 
+  toHumanReadable(input) {
+    switch(input) {
+      case 'seekForward':
+        return 'Jump Forward';
+      case 'seekBack':
+        return 'Jump Back';
+      case 'seekToLive':
+        return 'LIVE';
+      default:
+        return input;
+    }
+  }
+
   mounted() {
     // initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
@@ -67,7 +82,7 @@ class Live {
       },
       liveui: true,
     });
-    
+
     // init seekbuttons plugin
     this.video.seekButtons({
       forward: SKIP_FORWARD_SECONDS,
@@ -81,14 +96,17 @@ class Live {
 
     // save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
-      'play': () => {
-        console.log('trigger play');
-        if(this.firstPlaySync) this.sendMessage({flag: 'play'});
+      'play': (e) => {
+        if(e.cancelBubble) return;
+        if(this.firstPlaySync) this.sendMessage({flag: 'play', isPaused:false, action: 'syncAction'});
       },
-      'pause': () => this.sendMessage({flag: 'pause'}),
-      'sync': () => this.sendMessage({flag: 'sync-trigger'}),
+      'pause': () => this.sendMessage({flag: 'pause', isPaused: true, action: 'syncAction'}),
+      'seek': () => this.sendMessage({flag: 'seek', replace: true, action: 'syncAction'}),
+      'seekForward': () => this.sendMessage({flag: 'seekForward', action: 'syncAction'}),
+      'seekBack': () => this.sendMessage({flag: 'seekBack', action: 'syncAction'}),
+      'seekToLive': () => this.sendMessage({flag: 'seekToLive', action: 'syncAction'}),
     }
-  
+
     this.websocket = new engineio(route.href, {transports: ['websocket']});
     // join can only be issued once and determines which group of viewers is joined
     // a future implementation will allow different groups to all watch the same stream
@@ -96,54 +114,81 @@ class Live {
 
     this.websocket.on('message', (data) => {
       const message = JSON.parse(data);
-      switch(message.flag) {
-        case 'sync-request':
-          if(!this.firstPlaySync) break;
-          this.sendMessage({flag: 'sync-response'});
-          break;
-        case 'peer-disconnect':
-          this.addMessage({
-            isMeta: true,
-            name: 'Meta',
-            text: message.name + ' disconnected',
-            action: 'jumpToTime',
-            time: message.lastFrameTime-SKIP_BACK_SECONDS,
-          });
-      
-          break
-        case 'pong':
-          break;
-        case 'play':
-        case 'pause':
-        case 'sync-trigger':
-        case 'sync-response':
-          console.log('event handler', message.flag, message);
-          if(!this.firstPlaySync) break;
-          this.video.currentTime(message.lastFrameTime);
-          if(['play', 'pause'].includes(message.flag)) {
-            this.video.off(message.flag, eventHandlers[message.flag])
-            this.video[message.flag]();
-            this.video.on(message.flag, eventHandlers[message.flag])
-          }
-          break;
-        default:
-          this.addMessage(message);
+
+      if(message.flag == 'sync-request' && this.firstPlaySync) {
+        this.sendMessage({
+          flag: 'sync-response',
+          isPaused: this.video.paused(), 
+        });
+        return;
       }
+
+      if(message.flag == 'peerDisconnect') {
+        Object.assign(message, {
+          isMeta: true,
+          action: 'peerDisconnect',
+          time: message.lastFrameTime-SKIP_BACK_SECONDS,
+        });
+      }
+
+      if(message.flag == 'peerConnect') {
+        Object.assign(message, {
+          isMeta: true,
+          action: 'peerConnect',
+        });
+      }
+
+      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'sync-response'].includes(message.flag) && this.firstPlaySync) {
+        this.video.currentTime(message.lastFrameTime);
+        
+        if('isPaused' in message && message.isPaused !== this.video.paused()) {
+          const action = message.isPaused? 'pause': 'play';
+
+          // adding this in the propagation chain stops event propagating
+          this.video.one(action, (e) => e.stopImmediatePropagation() )
+
+          //the event must be removed and readded so it comes after the 'one' event that will disable it in the propagation chain
+          this.video.off(action, eventHandlers[action])
+          this.video.on(action, eventHandlers[action])
+          this.video[action]();
+        }
+      }
+
+
+      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive'].includes(message.flag)) {
+        message.isMeta = true;
+        message.action = 'syncAction';
+      }
+
+      if(message.flag == 'pong' || message.flag == 'sync-response') return;
+
+      this.addMessage(message);
     });
 
     this.websocket.on('open', () => {
       setInterval(() => {
         this.sendMessage({flag: 'ping', name:this.myName})
       }, 500)
+
+      this.sendMessage({flag: 'peerConnect', name:this.myName})
     })
+    
+    // this.websocket.on('close', () => {
+    //   const reconnectID = setInterval(() => {
+    //     this.sendMessage({flag: 'ping', name:this.myName})
+    //   }, 500)
+
+    //   this.sendMessage({flag: 'peerConnect', name:this.myName})
+    // })
 
     // onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.on('play', eventHandlers.play);
       this.video.on('pause', eventHandlers.pause);
-      this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.sync);
-      this.video.controlBar.seekForward.on('click', eventHandlers.sync);
-      this.video.controlBar.seekBack.on('click', eventHandlers.sync);
+      this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.seek);
+      this.video.controlBar.seekForward.on('click', eventHandlers.seekForward);
+      this.video.controlBar.seekBack.on('click', eventHandlers.seekBack);
+      this.video.controlBar.seekToLive.on('click', eventHandlers.seekToLive);
     })
 
     this.video.on('playing', () => {
@@ -153,6 +198,9 @@ class Live {
         this.sendMessage({flag: 'sync-request'});
       }
     })
+
+    window.video = this.video;
+    window.webby = this.websocket;
   }
 
   jumpToTime(time) {
@@ -163,7 +211,6 @@ class Live {
   sendChat() {
     const message = {
       flag: 'chatMessage',
-      name: this.myName,
       text: this.newMessage,
     };
 
@@ -173,16 +220,36 @@ class Live {
     this.addMessage(message, true);
   }
 
-  async addMessage(data, myMessage) {
-    data.myMessage = myMessage;
-    this.messages.push(data);
+  async addMessage(message, isMyMessage) {
+    message.myMessage = isMyMessage;
+    
+
+    if(message.replace == true) {
+      this.messages.splice(this.messages.length-1, 1);
+    }
+
+    if(message.flag == 'play' && this.messages[this.messages.length-1].flag === 'seek') {
+      return;
+    }
+    
+    this.messages.push(message);
+
     await this.$nextTick();
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
   }
 
+  addSyncMessage(data) {
+  }
+
   sendMessage(message) {
     message.lastFrameTime = this.video.currentTime();
+    message.name = this.myName;
     this.websocket.send(JSON.stringify(message));
+
+    if(message.action === 'syncAction') {
+      message.isMeta = true;
+      this.addMessage(message);
+    }
   }
 }
 </script>
@@ -369,11 +436,11 @@ class Live {
         &.meta {
           color: #aaa;
         }
-        
+
         p {
           margin: 5px 0;
         }
-        
+
         .indentMessage {
           margin-left: 20px;
         }
@@ -393,6 +460,10 @@ class Live {
       height: 40px;
       margin: 0 10px;
     }
+  }
+
+  .capitalize {
+    text-transform: capitalize;
   }
 }
 </style>
