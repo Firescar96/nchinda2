@@ -75,6 +75,13 @@ class ClientGroupManager {
                         client.ackedSyncRequest = false
                     });
                     break;
+                case 'clientStatus':
+                    const status = Object.values(this.clients)
+                        .map(x => ({
+                            name: x.name,
+                            lastFrameTime: x.lastFrameTime,
+                        }));
+                    ws.send(JSON.stringify({ flag: 'clientStatus', status }));
                 case 'ping':
                     this.clients[ws.id].update(data)
                     ws.send(JSON.stringify({ flag: 'pong' }))

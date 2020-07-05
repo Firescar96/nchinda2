@@ -12,8 +12,13 @@
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
-      <div id="sync" @click="sendMessage({flag: 'sync-request'})">
-        Sync To Others
+      <div id="triggersContainer">
+        <div id="sync" @click="sendMessage({flag: 'sync-request'})">
+          Sync To Others
+        </div>
+        <div id="sync" @click="sendMessage({flag: 'clientStatus'})">
+          Status Check
+        </div>
       </div>
       <div id="nameSelectionBox">
         <p>My Name:</p>
@@ -26,6 +31,16 @@
           <p class="indentMessage" v-if="message.action == 'peerDisconnect'">{{message.name}} disconnected <a  @click="jumpToTime(message.time)">Jump to Time</a></p>
           <p class="indentMessage" v-if="message.action == 'syncAction'">{{message.name}} pressed the <span class="capitalize">{{toHumanReadable(message.flag)}}</span> button</p>
           <p class="indentMessage" v-if="message.action == 'peerConnect'">{{message.name}} connected</p>
+          <div class="indentMessage" v-if="message.action == 'clientStatus'">
+            <div class="clientStatusHeader clientStatusGroup">
+              <div class="clientStatusName">Name</div>
+              <div class="clientStatusTime">Time</div>
+            </div>
+            <div class="clientStatusGroup" v-for="status in message.status">
+              <div class="clientStatusName">{{status.name}}</div>
+              <div class="clientStatusTime">{{Math.round(status.lastFrameTime)}}</div>
+            </div>
+          </div>
         </div>
         </overlay-scrollbars>
       <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
@@ -121,6 +136,14 @@ class Live {
           isPaused: this.video.paused(), 
         });
         return;
+      }
+
+      if(message.flag == 'clientStatus') {
+        Object.assign(message, {
+          isMeta: true,
+          action: 'clientStatus',
+          status: message.status,
+        });
       }
 
       if(message.flag == 'peerDisconnect') {
@@ -236,9 +259,6 @@ class Live {
 
     await this.$nextTick();
     this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
-  }
-
-  addSyncMessage(data) {
   }
 
   sendMessage(message) {
@@ -390,21 +410,27 @@ class Live {
     flex-direction: column;
     background: #111;
 
-    #sync {
-      padding: 10px 20px;
-      margin: auto;
-      background: #222;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
     #chatTitle {
       color: #f008;
       padding: 0 10px;
     }
 
-    #nameSelectionBox {
+    #triggersContainer {
+      display: flex;
+      justify-content: space-around;
       margin: 10px 0;
+      
+      div {
+        padding: 10px 20px;
+        margin: auto;
+        background: #222;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    }
+
+    #nameSelectionBox {
+      margin-top: 15px;
       display: flex;
       flex-direction: column;
       padding: 0 10px;
@@ -432,6 +458,7 @@ class Live {
 
       .message {
         padding: 8px 0;
+        overflow-wrap: break-word;
 
         &.meta {
           color: #aaa;
@@ -452,6 +479,32 @@ class Live {
         a {
           color: #ffff16a1;
           cursor: ew-resize;
+        }
+
+        .clientStatusHeader {
+          border-bottom: solid 1px #ddd;
+          margin-bottom: 2px;
+        }
+
+        .clientStatusGroup {
+          display: flex;
+          justify-content: space-between;
+          text-align: left;
+
+          .clientStatusName {
+            flex: 1;
+            margin: auto;
+            padding: 2px 5px;
+            border-right: solid 1px #ddd;
+            border-bottom: solid 1px #555;
+          }
+
+          .clientStatusTime {
+            width: 60px;
+            padding: 2px 5px;
+            margin: auto;
+            border-bottom: solid 1px #555;
+          }
         }
       }
     }

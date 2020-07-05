@@ -1,3 +1,8 @@
+# 2.4.0
+
+### Features
+* Add manual time check verification button
+
 # 2.3.0
 
 ### Features
