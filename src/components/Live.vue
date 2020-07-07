@@ -107,6 +107,7 @@ class Live {
     
     const route = new URL(window.location.href);
     route.protocol = route.protocol.replace('http', 'ws');
+    route.hostname = 'direct.' + route.hostname;
     if(route.port) route.port = 8080
 
     // save the eventhandlers so they can be en/disabled dynamically
