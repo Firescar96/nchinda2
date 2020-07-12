@@ -1,3 +1,15 @@
+# 2.4.1
+
+### Bug Fixes
+* Fix bug with first time triggers of play not activating for everyone
+* Do not honor message.replace flag when it comes after a message from a different viewer
+* Do not treat syncResponse as a chat message
+* Rename sync-request and sync-response to syncRequest and syncResponse respectively
+* Fix Scroll to bottom for new message
+
+### Design Updates
+* Add slide in message animation
+
 # 2.4.0
 
 ### Features

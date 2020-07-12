@@ -13,7 +13,7 @@
         conTROLLbox
       </h3>
       <div id="triggersContainer">
-        <div id="sync" @click="sendMessage({flag: 'sync-request'})">
+        <div id="sync" @click="sendMessage({flag: 'syncRequest'})">
           Sync To Others
         </div>
         <div id="sync" @click="sendMessage({flag: 'clientStatus'})">
@@ -25,9 +25,9 @@
         <input id="nameSelection" v-model="myName">
       </div>
         <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light">
-        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta}">
+        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta, myMessage: message.myMessage}">
           <p v-if="!message.myMessage && !message.isMeta">{{ message.name }}:</p>
-          <p class="indentMessage" :class="{myMessage: message.myMessage}">{{ message.text }}</p>
+          <p class="indentMessage">{{ message.text }}</p>
           <p class="indentMessage" v-if="message.action == 'peerDisconnect'">{{message.name}} disconnected <a  @click="jumpToTime(message.time)">Jump to Time</a></p>
           <p class="indentMessage" v-if="message.action == 'syncAction'">{{message.name}} pressed the <span class="capitalize">{{toHumanReadable(message.flag)}}</span> button</p>
           <p class="indentMessage" v-if="message.action == 'peerConnect'">{{message.name}} connected</p>
@@ -131,12 +131,11 @@ class Live {
     this.websocket.on('message', (data) => {
       const message = JSON.parse(data);
 
-      if(message.flag == 'sync-request' && this.firstPlaySync) {
+      if(message.flag == 'syncRequest' && this.firstPlaySync) {
         this.sendMessage({
-          flag: 'sync-response',
+          flag: 'syncResponse',
           isPaused: this.video.paused(), 
         });
-        return;
       }
 
       if(message.flag == 'clientStatus') {
@@ -162,14 +161,15 @@ class Live {
         });
       }
 
-      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'sync-response'].includes(message.flag) && this.firstPlaySync) {
+      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.firstPlaySync) {
         this.video.currentTime(message.lastFrameTime);
         
-        if('isPaused' in message && message.isPaused !== this.video.paused()) {
+        // !! is required to ensure isPaused is cast to a boolean
+        if(this.firstPlaySync && 'isPaused' in message && !!message.isPaused !== this.video.paused()) {
           const action = message.isPaused? 'pause': 'play';
 
           // adding this in the propagation chain stops event propagating
-          this.video.one(action, (e) => e.stopImmediatePropagation() )
+          this.video.one(action, (e) => e.stopImmediatePropagation())
 
           //the event must be removed and readded so it comes after the 'one' event that will disable it in the propagation chain
           this.video.off(action, eventHandlers[action])
@@ -184,8 +184,7 @@ class Live {
         message.action = 'syncAction';
       }
 
-      if(message.flag == 'pong' || message.flag == 'sync-response') return;
-
+      if(['pong', 'syncRequest', 'syncResponse'].includes(message.flag)) return;
       this.addMessage(message);
     });
 
@@ -218,8 +217,9 @@ class Live {
     this.video.on('playing', () => {
       // on first play request an update to the current time
       if(!this.firstPlaySync) {
+        console.log('firstPlaySync')
         this.firstPlaySync = true;
-        this.sendMessage({flag: 'sync-request'});
+        this.sendMessage({flag: 'syncRequest'});
       }
     })
 
@@ -248,7 +248,7 @@ class Live {
     message.myMessage = isMyMessage;
     
 
-    if(message.replace == true) {
+    if(message.replace == true && this.messages[this.messages.length-1].name == message.name) {
       this.messages.splice(this.messages.length-1, 1);
     }
 
@@ -259,7 +259,8 @@ class Live {
     this.messages.push(message);
 
     await this.$nextTick();
-    this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+    window.chats = this.$refs.chatMessages;
+    this.$refs.chatMessages.osInstance().scroll('100%');
   }
 
   sendMessage(message) {
@@ -460,9 +461,17 @@ class Live {
       .message {
         padding: 8px 0;
         overflow-wrap: break-word;
+        width: 100%; // this ensures overflow-wrap applies at the beginning, so during the animation overlayscrollbars can still calculate how far to scroll
+        animation-name: newMessage;
+        animation-duration: 1s;
 
         &.meta {
           color: #aaa;
+        }
+
+        &.myMessage {
+          text-align: right;
+          margin-left: 0;
         }
 
         p {
@@ -471,10 +480,6 @@ class Live {
 
         .indentMessage {
           margin-left: 20px;
-        }
-
-        .myMessage {
-          text-align: right;
         }
 
         a {
@@ -508,6 +513,11 @@ class Live {
           }
         }
       }
+      
+      @keyframes newMessage {
+        from {margin-left: -300px}
+        to {margin-left: 0}
+      }
     }
 
     input#chatInput {
@@ -519,5 +529,6 @@ class Live {
   .capitalize {
     text-transform: capitalize;
   }
+
 }
 </style>

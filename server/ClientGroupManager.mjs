@@ -28,7 +28,7 @@ class ClientGroupManager {
             const data = JSON.parse(rawdata);
             if (!this.clients[ws.id]) return;
             switch (data.flag) {
-                case 'sync-response':
+                case 'syncResponse':
                     this.clients[ws.id].lastFrameTime = data.lastFrameTime;
                     this.clients[ws.id].isPaused = data.isPaused;
                     this.clients[ws.id].ackedSyncRequest = true;
@@ -48,7 +48,7 @@ class ClientGroupManager {
                     if (minimumTime == Number.MAX_SAFE_INTEGER) break;
                     this.clientsWaitingToSync.forEach(clientWS => {
                         const responseMessage = {
-                            flag: 'sync-response',
+                            flag: 'syncResponse',
                             lastFrameTime: minimumTime,
                             isPaused,
                         }
@@ -61,7 +61,7 @@ class ClientGroupManager {
                     });
 
                     break;
-                case 'sync-request':
+                case 'syncRequest':
                     this.numResponsesRequested = Object
                         .keys(this.clients).length - 1;
                     this.numSyncResponses = 0;
