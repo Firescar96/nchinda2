@@ -13,7 +13,7 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 
 const HOST = process.env.HOST
 const PORT = process.env.PORT && Number(process.env.PORT)
-
+console.log(config.dev.devtool)
 const devWebpackConfig = merge(baseWebpackConfig, {
   mode: 'development',
   performance: {

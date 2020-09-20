@@ -69,14 +69,15 @@
 <script>
 import Component from 'vue-class-component';
 import videojs from 'video.js';
+import { Watch } from 'vue-property-decorator';
 //this attaches seekButtons to videojs
 //eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
-import engineio from 'engine.io-client';
 import { generateName } from '@/utility';
+import MessagingManager from './MessagingManagers/MessagingManager';
+import constants from './constants';
 
-const SKIP_BACK_SECONDS = 10;
-const SKIP_FORWARD_SECONDS = 30;
+const { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } = constants;
 
 export default
 @Component()
@@ -90,6 +91,11 @@ class Live {
       firstPlaySync: false, //on the first play sync to others
       lastSyncedTime: null,
     };
+  }
+
+  @Watch('myName')
+  changeName(value) {
+    this.messaging.myName = value;
   }
 
   toHumanReadable(input) {
@@ -123,103 +129,20 @@ class Live {
       backIndex: 0,
     });
 
-    const route = new URL(window.location.href);
-    route.protocol = route.protocol.replace('http', 'ws');
-    route.hostname = `direct.${route.hostname}`;
-    if(route.port) route.port = 8080;
+    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage);
 
     //save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
       play: (e) => {
         if(e.cancelBubble) return;
-        if(this.firstPlaySync) this.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
+        if(this.firstPlaySync) this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
       },
-      pause: () => this.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' }),
-      seek: () => this.sendMessage({ flag: 'seek', replace: true, action: 'syncAction' }),
-      seekForward: () => this.sendMessage({ flag: 'seekForward', action: 'syncAction' }),
-      seekBack: () => this.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
-      seekToLive: () => this.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
+      pause: () => this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' }),
+      seek: () => this.messaging.sendMessage({ flag: 'seek', replace: true, action: 'syncAction' }),
+      seekForward: () => this.messaging.sendMessage({ flag: 'seekForward', action: 'syncAction' }),
+      seekBack: () => this.messaging.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
+      seekToLive: () => this.messaging.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
     };
-    console.log(engineio);
-    this.websocket = engineio(route.href, { transports: ['websocket'] });
-    //join can only be issued once and determines which group of viewers is joined
-    //a future implementation will allow different groups to all watch the same stream
-    this.websocket.send(JSON.stringify({ flag: 'join', name: this.$route.params.stream }));
-
-    this.websocket.on('message', (data) => {
-      const message = JSON.parse(data);
-
-      if(message.flag === 'syncRequest' && this.firstPlaySync) {
-        this.sendMessage({
-          flag: 'syncResponse',
-          isPaused: this.video.paused(),
-        });
-      }
-
-      if(message.flag === 'clientStatus') {
-        Object.assign(message, {
-          isMeta: true,
-          action: 'clientStatus',
-          status: message.status,
-        });
-      }
-
-      if(message.flag === 'peerDisconnect') {
-        Object.assign(message, {
-          isMeta: true,
-          action: 'peerDisconnect',
-          time: message.lastFrameTime - SKIP_BACK_SECONDS,
-        });
-      }
-
-      if(message.flag === 'peerConnect') {
-        Object.assign(message, {
-          isMeta: true,
-          action: 'peerConnect',
-        });
-      }
-
-      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.firstPlaySync) {
-        this.video.currentTime(message.lastFrameTime);
-
-        //!! is required to ensure isPaused is cast to a boolean
-        if(this.firstPlaySync && 'isPaused' in message && !!message.isPaused !== this.video.paused()) {
-          const action = message.isPaused ? 'pause' : 'play';
-
-          //adding this in the propagation chain stops event propagating
-          this.video.one(action, (e) => e.stopImmediatePropagation());
-
-          //the event must be removed and readded so it comes after the 'one' event that will disable it in the propagation chain
-          this.video.off(action, eventHandlers[action]);
-          this.video.on(action, eventHandlers[action]);
-          this.video[action]();
-        }
-      }
-
-      if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive'].includes(message.flag)) {
-        message.isMeta = true;
-        message.action = 'syncAction';
-      }
-
-      if(['pong', 'syncRequest', 'syncResponse'].includes(message.flag)) return;
-      this.addMessage(message);
-    });
-
-    this.websocket.on('open', () => {
-      setInterval(() => {
-        this.sendMessage({ flag: 'ping', name: this.myName });
-      }, 500);
-
-      this.sendMessage({ flag: 'peerConnect', name: this.myName });
-    });
-
-    //this.websocket.on('close', () => {
-    //const reconnectID = setInterval(() => {
-    //this.sendMessage({flag: 'ping', name:this.myName})
-    //}, 500)
-
-    //this.sendMessage({flag: 'peerConnect', name:this.myName})
-    //})
 
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
@@ -234,19 +157,15 @@ class Live {
     this.video.on('playing', () => {
       //on first play request an update to the current time
       if(!this.firstPlaySync) {
-        console.log('firstPlaySync');
         this.firstPlaySync = true;
-        this.sendMessage({ flag: 'syncRequest' });
+        this.messaging.sendMessage({ flag: 'syncRequest' });
       }
     });
-
-    window.video = this.video;
-    window.webby = this.websocket;
   }
 
   jumpToTime(time) {
     this.video.currentTime(time);
-    this.sendMessage({ flag: 'sync-trigger' });
+    this.messaging.sendMessage({ flag: 'sync-trigger' });
   }
 
   sendChat() {
@@ -255,13 +174,13 @@ class Live {
       text: this.newMessage,
     };
 
-    this.sendMessage(message);
+    this.messaging.sendMessage(message);
     this.newMessage = '';
 
-    this.addMessage(message, true);
+    this.displayMessage(message, true);
   }
 
-  async addMessage(message, isMyMessage) {
+  async displayMessage(message, isMyMessage) {
     message.myMessage = isMyMessage;
 
     if(message.replace === true && this.messages[this.messages.length - 1].name === message.name) {
@@ -277,17 +196,6 @@ class Live {
     await this.$nextTick();
     window.chats = this.$refs.chatMessages;
     this.$refs.chatMessages.osInstance().scroll('100%');
-  }
-
-  sendMessage(message) {
-    message.lastFrameTime = this.video.currentTime();
-    message.name = this.myName;
-    this.websocket.send(JSON.stringify(message));
-
-    if(message.action === 'syncAction') {
-      message.isMeta = true;
-      this.addMessage(message);
-    }
   }
 }
 </script>
