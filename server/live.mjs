@@ -16,14 +16,13 @@ liveWS.attach(httpsServer, {
   transports: ['websocket'],
 });
 
-
-const streamClients = {}
+const streamClients = {};
 function onConnection(socket) {
   socket.once('message', (data) => {
-    const message = JSON.parse(data)
+    const message = JSON.parse(data);
     streamClients[message.name] = streamClients[message.name] || new ClientGroupManager(message.name);
     streamClients[message.name].addClient(socket);
-  })
+  });
 }
 
 liveWS.on('connection', onConnection);

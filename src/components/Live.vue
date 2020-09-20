@@ -161,6 +161,8 @@ class Live {
         this.messaging.sendMessage({ flag: 'syncRequest' });
       }
     });
+
+    window.video = this.video;
   }
 
   jumpToTime(time) {

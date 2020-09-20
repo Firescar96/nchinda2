@@ -1,4 +1,5 @@
 import WebsocketClient from './WebsocketClient';
+import WebRTCClient from './WebRTCClient';
 import constants from '../constants';
 
 const { SKIP_BACK_SECONDS } = constants;
@@ -9,7 +10,14 @@ class MessagingManager {
     this.myName = myName;
     this.video = video;
     this.displayMessage = displayMessage;
+    this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(this.sendMessage.bind(this), this.receiveData.bind(this));
+
+    this.webrtcClient.client.on('signal', (signal) => {
+      this.sendMessage({ flag: 'webrtcSignal', signal });
+    });
+
+    window.webrtcClient = this.webrtcClient;
   }
 
   sendMessage(message) {
@@ -25,6 +33,12 @@ class MessagingManager {
 
   receiveData(data) {
     const message = JSON.parse(data);
+
+    if(message.flag == 'webrtcSignal') {
+      console.log('message', message);
+      this.webrtcClient.client.signal(message.signal);
+      return;
+    }
 
     if(message.flag === 'syncRequest' && this.firstPlaySync) {
       this.sendMessage({
