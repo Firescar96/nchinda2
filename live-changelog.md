@@ -1,3 +1,8 @@
+# 2.4.2
+
+### Bug Fixes
+* node package upgrade
+
 # 2.4.1
 
 ### Bug Fixes
