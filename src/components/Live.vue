@@ -24,48 +24,66 @@
         <p>My Name:</p>
         <input id="nameSelection" v-model="myName">
       </div>
-        <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light">
+      <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light">
         <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta, myMessage: message.myMessage}">
-          <p v-if="!message.myMessage && !message.isMeta">{{ message.name }}:</p>
-          <p class="indentMessage">{{ message.text }}</p>
-          <p class="indentMessage" v-if="message.action == 'peerDisconnect'">{{message.name}} disconnected <a  @click="jumpToTime(message.time)">Jump to Time</a></p>
-          <p class="indentMessage" v-if="message.action == 'syncAction'">{{message.name}} pressed the <span class="capitalize">{{toHumanReadable(message.flag)}}</span> button</p>
-          <p class="indentMessage" v-if="message.action == 'peerConnect'">{{message.name}} connected</p>
-          <div class="indentMessage" v-if="message.action == 'clientStatus'">
+          <p v-if="!message.myMessage && !message.isMeta">
+            {{ message.name }}:
+          </p>
+          <p class="indentMessage">
+            {{ message.text }}
+          </p>
+          <p v-if="message.action == 'peerDisconnect'" class="indentMessage">
+            {{ message.name }} disconnected <a @click="jumpToTime(message.time)">Jump to Time</a>
+          </p>
+          <p v-if="message.action == 'syncAction'" class="indentMessage">
+            {{ message.name }} pressed the <span class="capitalize">{{ toHumanReadable(message.flag) }}</span> button
+          </p>
+          <p v-if="message.action == 'peerConnect'" class="indentMessage">
+            {{ message.name }} connected
+          </p>
+          <div v-if="message.action == 'clientStatus'" class="indentMessage">
             <div class="clientStatusHeader clientStatusGroup">
-              <div class="clientStatusName">Name</div>
-              <div class="clientStatusTime">Time</div>
+              <div class="clientStatusName">
+                Name
+              </div>
+              <div class="clientStatusTime">
+                Time
+              </div>
             </div>
-            <div class="clientStatusGroup" v-for="status in message.status">
-              <div class="clientStatusName">{{status.name}}</div>
-              <div class="clientStatusTime">{{Math.round(status.lastFrameTime)}}</div>
+            <div v-for="status in message.status" :key="status.name" class="clientStatusGroup">
+              <div class="clientStatusName">
+                {{ status.name }}
+              </div>
+              <div class="clientStatusTime">
+                {{ Math.round(status.lastFrameTime) }}
+              </div>
             </div>
           </div>
         </div>
-        </overlay-scrollbars>
+      </overlay-scrollbars>
       <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
     </div>
   </div>
 </template>
 
 <script>
-import Vue from 'vue';
 import Component from 'vue-class-component';
 import videojs from 'video.js';
-import engineio from 'engine.io-client';
+//this attaches seekButtons to videojs
+//eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
+import engineio from 'engine.io-client';
 import { generateName } from '@/utility';
 
 const SKIP_BACK_SECONDS = 10;
 const SKIP_FORWARD_SECONDS = 30;
-
 
 export default
 @Component()
 class Live {
   data() {
     return {
-      messages: [{isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.'}],
+      messages: [{ isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.' }],
       newMessage: '',
       myName: generateName(),
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
@@ -88,7 +106,7 @@ class Live {
   }
 
   mounted() {
-    // initialize videojs with options
+    //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
       controls: true,
@@ -98,47 +116,47 @@ class Live {
       liveui: true,
     });
 
-    // init seekbuttons plugin
+    //init seekbuttons plugin
     this.video.seekButtons({
       forward: SKIP_FORWARD_SECONDS,
       back: SKIP_BACK_SECONDS,
       backIndex: 0,
     });
-    
+
     const route = new URL(window.location.href);
     route.protocol = route.protocol.replace('http', 'ws');
-    route.hostname = 'direct.' + route.hostname;
-    if(route.port) route.port = 8080
+    route.hostname = `direct.${route.hostname}`;
+    if(route.port) route.port = 8080;
 
-    // save the eventhandlers so they can be en/disabled dynamically
+    //save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
-      'play': (e) => {
+      play: (e) => {
         if(e.cancelBubble) return;
-        if(this.firstPlaySync) this.sendMessage({flag: 'play', isPaused:false, action: 'syncAction'});
+        if(this.firstPlaySync) this.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
       },
-      'pause': () => this.sendMessage({flag: 'pause', isPaused: true, action: 'syncAction'}),
-      'seek': () => this.sendMessage({flag: 'seek', replace: true, action: 'syncAction'}),
-      'seekForward': () => this.sendMessage({flag: 'seekForward', action: 'syncAction'}),
-      'seekBack': () => this.sendMessage({flag: 'seekBack', action: 'syncAction'}),
-      'seekToLive': () => this.sendMessage({flag: 'seekToLive', action: 'syncAction'}),
-    }
-
-    this.websocket = new engineio(route.href, {transports: ['websocket']});
-    // join can only be issued once and determines which group of viewers is joined
-    // a future implementation will allow different groups to all watch the same stream
-    this.websocket.send(JSON.stringify({flag: 'join', name: this.$route.params.stream}))
+      pause: () => this.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' }),
+      seek: () => this.sendMessage({ flag: 'seek', replace: true, action: 'syncAction' }),
+      seekForward: () => this.sendMessage({ flag: 'seekForward', action: 'syncAction' }),
+      seekBack: () => this.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
+      seekToLive: () => this.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
+    };
+    console.log(engineio);
+    this.websocket = engineio(route.href, { transports: ['websocket'] });
+    //join can only be issued once and determines which group of viewers is joined
+    //a future implementation will allow different groups to all watch the same stream
+    this.websocket.send(JSON.stringify({ flag: 'join', name: this.$route.params.stream }));
 
     this.websocket.on('message', (data) => {
       const message = JSON.parse(data);
 
-      if(message.flag == 'syncRequest' && this.firstPlaySync) {
+      if(message.flag === 'syncRequest' && this.firstPlaySync) {
         this.sendMessage({
           flag: 'syncResponse',
-          isPaused: this.video.paused(), 
+          isPaused: this.video.paused(),
         });
       }
 
-      if(message.flag == 'clientStatus') {
+      if(message.flag === 'clientStatus') {
         Object.assign(message, {
           isMeta: true,
           action: 'clientStatus',
@@ -146,15 +164,15 @@ class Live {
         });
       }
 
-      if(message.flag == 'peerDisconnect') {
+      if(message.flag === 'peerDisconnect') {
         Object.assign(message, {
           isMeta: true,
           action: 'peerDisconnect',
-          time: message.lastFrameTime-SKIP_BACK_SECONDS,
+          time: message.lastFrameTime - SKIP_BACK_SECONDS,
         });
       }
 
-      if(message.flag == 'peerConnect') {
+      if(message.flag === 'peerConnect') {
         Object.assign(message, {
           isMeta: true,
           action: 'peerConnect',
@@ -163,21 +181,20 @@ class Live {
 
       if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.firstPlaySync) {
         this.video.currentTime(message.lastFrameTime);
-        
-        // !! is required to ensure isPaused is cast to a boolean
-        if(this.firstPlaySync && 'isPaused' in message && !!message.isPaused !== this.video.paused()) {
-          const action = message.isPaused? 'pause': 'play';
 
-          // adding this in the propagation chain stops event propagating
-          this.video.one(action, (e) => e.stopImmediatePropagation())
+        //!! is required to ensure isPaused is cast to a boolean
+        if(this.firstPlaySync && 'isPaused' in message && !!message.isPaused !== this.video.paused()) {
+          const action = message.isPaused ? 'pause' : 'play';
+
+          //adding this in the propagation chain stops event propagating
+          this.video.one(action, (e) => e.stopImmediatePropagation());
 
           //the event must be removed and readded so it comes after the 'one' event that will disable it in the propagation chain
-          this.video.off(action, eventHandlers[action])
-          this.video.on(action, eventHandlers[action])
+          this.video.off(action, eventHandlers[action]);
+          this.video.on(action, eventHandlers[action]);
           this.video[action]();
         }
       }
-
 
       if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive'].includes(message.flag)) {
         message.isMeta = true;
@@ -190,21 +207,21 @@ class Live {
 
     this.websocket.on('open', () => {
       setInterval(() => {
-        this.sendMessage({flag: 'ping', name:this.myName})
-      }, 500)
+        this.sendMessage({ flag: 'ping', name: this.myName });
+      }, 500);
 
-      this.sendMessage({flag: 'peerConnect', name:this.myName})
-    })
-    
-    // this.websocket.on('close', () => {
-    //   const reconnectID = setInterval(() => {
-    //     this.sendMessage({flag: 'ping', name:this.myName})
-    //   }, 500)
+      this.sendMessage({ flag: 'peerConnect', name: this.myName });
+    });
 
-    //   this.sendMessage({flag: 'peerConnect', name:this.myName})
-    // })
+    //this.websocket.on('close', () => {
+    //const reconnectID = setInterval(() => {
+    //this.sendMessage({flag: 'ping', name:this.myName})
+    //}, 500)
 
-    // onReady setup the handlers for different user interactions
+    //this.sendMessage({flag: 'peerConnect', name:this.myName})
+    //})
+
+    //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.on('play', eventHandlers.play);
       this.video.on('pause', eventHandlers.pause);
@@ -212,16 +229,16 @@ class Live {
       this.video.controlBar.seekForward.on('click', eventHandlers.seekForward);
       this.video.controlBar.seekBack.on('click', eventHandlers.seekBack);
       this.video.controlBar.seekToLive.on('click', eventHandlers.seekToLive);
-    })
+    });
 
     this.video.on('playing', () => {
-      // on first play request an update to the current time
+      //on first play request an update to the current time
       if(!this.firstPlaySync) {
-        console.log('firstPlaySync')
+        console.log('firstPlaySync');
         this.firstPlaySync = true;
-        this.sendMessage({flag: 'syncRequest'});
+        this.sendMessage({ flag: 'syncRequest' });
       }
-    })
+    });
 
     window.video = this.video;
     window.webby = this.websocket;
@@ -229,7 +246,7 @@ class Live {
 
   jumpToTime(time) {
     this.video.currentTime(time);
-    this.sendMessage({flag: 'sync-trigger'});
+    this.sendMessage({ flag: 'sync-trigger' });
   }
 
   sendChat() {
@@ -246,16 +263,15 @@ class Live {
 
   async addMessage(message, isMyMessage) {
     message.myMessage = isMyMessage;
-    
 
-    if(message.replace == true && this.messages[this.messages.length-1].name == message.name) {
-      this.messages.splice(this.messages.length-1, 1);
+    if(message.replace === true && this.messages[this.messages.length - 1].name === message.name) {
+      this.messages.splice(this.messages.length - 1, 1);
     }
 
-    if(message.flag == 'play' && this.messages[this.messages.length-1].flag === 'seek') {
+    if(message.flag === 'play' && this.messages[this.messages.length - 1].flag === 'seek') {
       return;
     }
-    
+
     this.messages.push(message);
 
     await this.$nextTick();
@@ -421,7 +437,7 @@ class Live {
       display: flex;
       justify-content: space-around;
       margin: 10px 0;
-      
+
       div {
         padding: 10px 20px;
         margin: auto;
@@ -513,7 +529,7 @@ class Live {
           }
         }
       }
-      
+
       @keyframes newMessage {
         from {margin-left: -300px}
         to {margin-left: 0}

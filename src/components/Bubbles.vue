@@ -58,7 +58,6 @@ import videojs from 'video.js';
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../static/images/bubble.png';
 
-
 const NUM_POSTS = 6;
 export default
 @Component()
@@ -267,7 +266,6 @@ class Bubbles {
       pointer-events: all;
     }
   }
-
 
   div#cloudsContainer {
     position: absolute;

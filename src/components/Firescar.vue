@@ -173,7 +173,6 @@ class Firescar {
     z-index: 1000;
     font-size: 22px;
 
-
     .back {
       position: fixed;
       top: 10px;

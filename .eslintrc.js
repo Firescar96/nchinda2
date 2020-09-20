@@ -14,7 +14,7 @@ module.exports = {
   },
   //https://github.com/vuejs/eslint-plugin-vue#priority-a-essential-error-prevention
   //consider switching to `plugin:vue/strongly-recommended` or `plugin:vue/recommended` for stricter rules.
-  extends: ['plugin:vue/recommended'],
+  extends: ['plugin:vue/recommended', 'airbnb-base'],
   //required to lint *.vue files
   plugins: [
     'vue',
@@ -38,21 +38,22 @@ module.exports = {
     'vue/max-attributes-per-line': 'off',
     'no-plusplus': 0,
     'no-inner-declarations': 0,
-    'class-methods-use-this': [0, { 'exceptMethods': ['data', 'computed'] }],
-    'vue/no-v-html': 0,
+    'class-methods-use-this': [0, { exceptMethods: ['data', 'computed'] }],
+    'no-underscore-dangle': [2, { allowAfterThis: true }],
+
     /**
     * General
     */
 
     //This will throw warnings anywhere 'use strict' occurs, which is good.
-    'strict': [2, 'never'],
+    strict: [2, 'never'],
 
     /**
     * Errors
     */
 
-    'curly': [2, 'multi-line'],
-    'no-cond-assign': [2, 'always'],  //This is why you should yoda :p
+    curly: [2, 'multi-line'],
+    'no-cond-assign': [2, 'always'], //This is why you should yoda :p
     'no-constant-condition': 2,
     'no-dupe-keys': 2,
     'no-duplicate-case': 2,
@@ -79,10 +80,10 @@ module.exports = {
     'no-proto': 2,
     'no-redeclare': 2,
     'no-return-assign': 2,
-    'no-script-url': 2,     //No need for these in Meteor!
+    'no-script-url': 2, //No need for these in Meteor!
     'no-self-compare': 2,
-    'no-sequences': 2,      //I hate that!
-    'no-shadow': [1, { 'hoist': 'functions' }],
+    'no-sequences': 2, //I hate that!
+    'no-shadow': [1, { hoist: 'functions' }],
     'no-sparse-arrays': 2,
     'no-unreachable': 2,
     'no-with': 2,
@@ -100,7 +101,7 @@ module.exports = {
     //allow optionalDependencies
     'import/no-extraneous-dependencies': 'error',
     'max-len': 'off',
-    'eqeqeq': 'warn',
+    eqeqeq: 'warn',
     //allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
 
@@ -110,20 +111,20 @@ module.exports = {
 
     'comma-dangle': [1, 'always-multiline'],
     'consistent-return': 1,
-    'default-case': 1,          //*If* you happen to use a switch, maybe you don't want a default
+    'default-case': 1, //*If* you happen to use a switch, maybe you don't want a default
     'guard-for-in': 1,
     'no-alert': 1,
-    'no-caller': 1,             //Should be 2, but there is some code out there... ;>
+    'no-caller': 1, //Should be 2, but there is some code out there... ;>
     'no-debugger': 1,
-    'no-extra-boolean-cast': 1,   //I should give it a 2 but being nice!! (Sasha uses them)
+    'no-extra-boolean-cast': 1, //I should give it a 2 but being nice!! (Sasha uses them)
     //^punny, eh! :D
-    'no-fallthrough': 1,          //*If* you happen to.. it shouldn't be often.
-    'no-floating-decimal': 1,     //Should be 2, but I bet lots of you...
-    'no-multi-str': 1,            //Should be 2, I'm being nice :>
+    'no-fallthrough': 1, //*If* you happen to.. it shouldn't be often.
+    'no-floating-decimal': 1, //Should be 2, but I bet lots of you...
+    'no-multi-str': 1, //Should be 2, I'm being nice :>
     'no-shadow-restricted-names': 2,
     'no-unused-vars': [1, {
-      'vars': 'local',
-      'args': 'none',
+      vars: 'local',
+      args: 'none',
     }],
     'no-use-before-define': 2,
 
@@ -132,19 +133,19 @@ module.exports = {
     */
     'brace-style': [2,
       '1tbs', {
-        'allowSingleLine': true,
+        allowSingleLine: true,
       },
     ],
-    'camelcase': [2, { 'properties': 'always' }],
+    camelcase: [2, { properties: 'always' }],
     'comma-spacing': [2, {
-      'before': false,
-      'after': true,
+      before: false,
+      after: true,
     }],
     'comma-style': [2, 'last'],
-    'indent': [2, 2, { 'SwitchCase': 1 }],
+    indent: [2, 2, { SwitchCase: 1 }],
     'key-spacing': [2, {
-      'afterColon': true,
-      'beforeColon': false,
+      afterColon: true,
+      beforeColon: false,
     },
     ], //'prop': x, extra spacing allowed if lining up blocks
     'linebreak-style': [
@@ -153,39 +154,40 @@ module.exports = {
     ],
     'new-cap': 2,
     'no-multiple-empty-lines': 1,
-    'no-new-object': 2,         //There are good reasons not to
-    'no-array-constructor': 2,  //There are good reasons not to
+    'no-new-object': 2, //There are good reasons not to
+    'no-array-constructor': 2, //There are good reasons not to
     'no-trailing-spaces': 2,
     'one-var': [2, 'never'],
-    'quotes': [
+    quotes: [
       2, 'single', 'avoid-escape',
     ],
-    'semi': [2, 'always'],
+    semi: [2, 'always'],
     'semi-spacing': [2, {
-      'before': false,
-      'after': true,
+      before: false,
+      after: true,
     }],
     'keyword-spacing': [2, {
-      'after': true, 'overrides': {
-        'if': { 'after': false },
-        'for': { 'after': false },
-        'while': { 'after': false },
-        'switch': { 'after': false },
+      after: true,
+      overrides: {
+        if: { after: false },
+        for: { after: false },
+        while: { after: false },
+        switch: { after: false },
       },
     }],
     'space-before-blocks': 2,
     'space-infix-ops': 2,
     'spaced-comment': [2, 'never'],
   },
-  'overrides': [
+  overrides: [
     {
-      'files': ['*.spec.js'],
-      'globals': {
+      files: ['*.spec.js'],
+      globals: {
         assert: true,
       },
-      'rules': {
+      rules: {
         'func-names': 0,
-        'no-empty': [2, { 'allowEmptyCatch': true }],
+        'no-empty': [2, { allowEmptyCatch: true }],
       },
     },
   ],

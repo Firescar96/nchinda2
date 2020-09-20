@@ -18,7 +18,8 @@ exports.cssLoaders = function (options) {
   const cssLoader = {
     loader: 'css-loader',
     options: {
-      sourceMap: options.sourceMap
+      sourceMap: options.sourceMap,
+      esModule: false,
     }
   }
 
@@ -30,10 +31,10 @@ exports.cssLoaders = function (options) {
   }
 
   // generate loader string to be used with extract text plugin
-  function generateLoaders (loader, loaderOptions) {
+  function generateLoaders(loader, loaderOptions) {
     const loaders = process.env.NODE_ENV === 'production' ? [MiniCssExtractPlugin.loader, cssLoader] : [cssLoader]
-    if(options.usePostCSS) loaders.push(postcssLoader);
-    
+    if (options.usePostCSS) loaders.push(postcssLoader);
+
     if (loader) {
       loaders.push({
         loader: loader + '-loader',

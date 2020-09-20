@@ -5,6 +5,7 @@ import gzipStatic from 'connect-gzip-static';
 import https from 'https';
 import http from 'http';
 
+const httpPort = process.env.NODE_ENV == 'production' ? 80 : 8080;
 const httpsPort = process.env.NODE_ENV == 'production' ? 443 : 8081;
 const httpApp = express();
 const certbot = path.resolve('./static/');
@@ -29,4 +30,4 @@ const credentials = {
 const httpServer = http.createServer(httpApp)
 const httpsServer = https.createServer(credentials, httpsApp)
 
-export { httpServer, httpsServer, httpsPort };
+export { httpServer, httpsServer, httpPort, httpsPort };

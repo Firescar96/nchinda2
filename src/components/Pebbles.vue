@@ -148,7 +148,6 @@ class Pebbles {
     #notHeader {
       display: flex;
 
-
       #postContent {
         width: 960px;
         margin: auto;
