@@ -9,11 +9,6 @@ class WebRTCClient {
 
     this.client.on('error', (err) => console.log('error', err));
 
-    this.client.on('connect', () => {
-      console.log('CONNECT');
-      webrtcClient.send(`whatever${Math.random()}`);
-    });
-
     this.client.on('data', (data) => {
       console.log(`data: ${data}`);
     });

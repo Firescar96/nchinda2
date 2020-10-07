@@ -1,6 +1,5 @@
-import SimplePeer from 'simple-peer';
-import wrtc from 'wrtc';
 import { WSClient } from './client.mjs';
+import WebRTCClient from './WebrtcClient.mjs';
 
 class ClientGroupManager {
   constructor(name) {
@@ -26,13 +25,9 @@ class ClientGroupManager {
       console.log('hello world');
     });
 
-    const webrtcClient = new SimplePeer({
-      initiator: true,
-      trickle: false,
-      wrtc,
-    });
+    const webrtcClient = new WebRTCClient();
 
-    webrtcClient.on('signal', (signal) => {
+    webrtcClient.client.on('signal', (signal) => {
       const data = {
         flag: 'webrtcSignal',
         signal,
@@ -41,24 +36,13 @@ class ClientGroupManager {
       ws.send(JSON.stringify(data));
     });
 
-    webrtcClient.on('data', (data) => {
-      console.log('got message', data);
-    });
-
-    webrtcClient.on('stream', (stream) => {
-      console.log('add new stream');
-      webrtcClient.addStream(stream);
-    });
-
-    webrtcClient.on('error', (err) => { console.log('rtc error', err); });
-
     ws.on('message', (rawdata) => {
       const data = JSON.parse(rawdata);
       if(!this.clients[ws.id]) return;
       switch(data.flag) {
         case 'webrtcSignal':
           console.log('webrtcSignal', data);
-          webrtcClient.signal(data.signal);
+          webrtcClient.client.signal(data.signal);
           break;
         case 'syncResponse':
           this.clients[ws.id].lastFrameTime = data.lastFrameTime;
