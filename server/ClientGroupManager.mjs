@@ -1,5 +1,78 @@
+import childProcess from 'child_process';
+import ws from 'ws';
 import { WSClient } from './client.mjs';
 import WebRTCClient from './WebrtcClient.mjs';
+
+//const audioSpawnOptions = [
+//'-re',
+//'-i',
+//'rtmp://nchinda2.com/live/lobby',
+//'-b:a',
+//'128k',
+////'-ar',
+////'44100',
+//'-c',
+//'2',
+//'-f',
+//'mpegts',
+//'-codec:a',
+//'mp2',
+//'-muxdelay',
+//'0.001',
+//'-',
+//];
+//const audioStream = childProcess.spawn('ffmpeg', audioSpawnOptions, {
+//detached: false,
+//});
+
+const spawnOptions = [
+  '-re',
+  '-i',
+  'rtmp://nchinda2.com/live/lobby',
+  '-b:a',
+  '64k',
+  '-bf',
+  '0',
+  '-f',
+  'mpegts',
+  '-codec:v',
+  'mpeg1video',
+  '-codec:a',
+  'mp2',
+  '-',
+];
+console.log('spawnOptions', spawnOptions.reduce((a, b) => `${a} ${b}`));
+const stream = childProcess.spawn('ffmpeg', spawnOptions, {
+  detached: false,
+});
+
+const videoServer = new ws.Server({
+  port: 9999,
+});
+
+//wsServer.on("connection", (socket, request) => {
+//return this.onSocketConnect(socket, request)
+//})
+
+videoServer.broadcast = function (data, opts) {
+  let results;
+  results = [];
+  for(const client of this.clients) {
+    if(client.readyState === 1) {
+      results.push(client.send(data, opts));
+    } else {
+      results.push(console.log(`Error: Client from remoteAddress ${client.remoteAddress} not connected.`));
+    }
+  }
+  return results;
+};
+
+//audioStream.stdout.on('data', (data) => {
+//videoServer.broadcast(data.toJSON().data);
+//});
+stream.stdout.on('data', (data) => {
+  videoServer.broadcast(data.toJSON().data);
+});
 
 class ClientGroupManager {
   constructor(name) {
@@ -21,20 +94,27 @@ class ClientGroupManager {
       delete this.clients[ws.id];
     });
 
-    ws.on('open', () => {
-      console.log('hello world');
+    stream.stdout.on('data', (data) => {
+      const rawdata = JSON.stringify({
+        flag: 'liveStreamData',
+        data: data.toJSON().data,
+      });
+      this.broadcastMessage(rawdata);
     });
 
-    const webrtcClient = new WebRTCClient();
+    //stream.stderr.on('data', (data) => {
+    //console.log('ffmpeg error:', data.toString());
+    //});
 
-    webrtcClient.client.on('signal', (signal) => {
-      const data = {
-        flag: 'webrtcSignal',
-        signal,
-      };
-      console.log('signal', data);
-      ws.send(JSON.stringify(data));
-    });
+    //const webrtcClient = new WebRTCClient();
+
+    //webrtcClient.client.on('signal', (signal) => {
+    //const data = {
+    //flag: 'webrtcSignal',
+    //signal,
+    //};
+    //ws.send(JSON.stringify(data));
+    //});
 
     ws.on('message', (rawdata) => {
       const data = JSON.parse(rawdata);
@@ -111,7 +191,7 @@ class ClientGroupManager {
 
   broadcastMessage(rawdata, ws) {
     Object.values(this.clients).forEach((client) => {
-      if(client.id == ws.id) return;
+      if(ws && client.id == ws.id) return;
       client.websocket.send(rawdata);
     });
   }

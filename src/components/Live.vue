@@ -1,11 +1,12 @@
 <template>
   <div id="livePage">
+    <canvas id="canvas" />
     <video
       ref="liveVid"
       class="video-js vjs-default-skin"
     >
       <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
-      <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml">
+      <!-- <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml"> -->
     </video>
 
     <div id="chatSideBar">
@@ -74,8 +75,10 @@ import { Watch } from 'vue-property-decorator';
 //eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
 import { generateName } from '@/utility';
+import JSMpeg from '@cycjimmy/jsmpeg-player';
 import MessagingManager from './MessagingManagers/MessagingManager';
 import constants from './constants';
+import JSMpegPipeSource from './JSMpegPipeSource';
 
 const { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } = constants;
 
@@ -112,6 +115,16 @@ class Live {
   }
 
   mounted() {
+    const mpegPlayer = new JSMpeg.Player('pipe', {
+      source: JSMpegPipeSource,
+      canvas: document.getElementById('canvas'),
+      pauseWhenHidden: false,
+      onPlay: () => {
+        mpegPlayer.stop();
+        console.log('no wousr');
+      }
+    });
+    window.mpegPlayer = mpegPlayer;
     //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
@@ -119,6 +132,7 @@ class Live {
       controlBar: {
         pictureInPictureToggle: false,
       },
+      techOrder: ['html5'],
       liveui: true,
     });
 
@@ -129,7 +143,7 @@ class Live {
       backIndex: 0,
     });
 
-    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage);
+    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, mpegPlayer);
 
     //save the eventhandlers so they can be en/disabled dynamically
     const eventHandlers = {
@@ -214,6 +228,15 @@ class Live {
   flex-direction: row;
   color: white;
 
+  #liveVid {
+    display: none;
+  }
+
+  canvas {
+    height: 600px;
+    width: 600px;
+  }
+
   input {
     background: transparent;
     outline: none;
@@ -262,6 +285,10 @@ class Live {
     color: $primary-foreground-color;
     height: 100%;
     flex: 1;
+
+    .vjs-tech {
+      pointer-events: none;
+    }
 
     video {
       outline: none;

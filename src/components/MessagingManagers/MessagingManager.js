@@ -5,10 +5,11 @@ import constants from '../constants';
 const { SKIP_BACK_SECONDS } = constants;
 
 class MessagingManager {
-  constructor(lobbyName, myName, video, displayMessage) {
+  constructor(lobbyName, myName, video, displayMessage, mpegPlayer) {
     this.lobbyName = lobbyName;
     this.myName = myName;
     this.video = video;
+    this.mpegPlayer = mpegPlayer;
     this.displayMessage = displayMessage;
     this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(this.sendMessage.bind(this), this.receiveData.bind(this));
@@ -16,8 +17,6 @@ class MessagingManager {
     this.webrtcClient.client.on('signal', (signal) => {
       this.sendMessage({ flag: 'webrtcSignal', signal });
     });
-
-    window.webrtcClient = this.webrtcClient;
   }
 
   sendMessage(message) {
@@ -34,8 +33,13 @@ class MessagingManager {
   receiveData(data) {
     const message = JSON.parse(data);
 
+    if(message.flag == 'liveStreamData') {
+      const messageData = new Uint8Array(message.data).buffer;
+      this.mpegPlayer.source.write(messageData);
+      return;
+    }
+
     if(message.flag == 'webrtcSignal') {
-      console.log('message', message);
       this.webrtcClient.client.signal(message.signal);
       return;
     }
