@@ -1,7 +1,8 @@
 import engineio from 'engine.io-client';
 
 class WebsocketClient {
-  constructor(sendMessage, receiveData) {
+  constructor(lobbyName, sendMessage, receiveData) {
+    this.lobbyName = lobbyName;
     this.sendMessage = sendMessage;
     this.receiveData = receiveData;
 

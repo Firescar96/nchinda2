@@ -1,23 +1,63 @@
 <template>
   <div id="livePage">
-    <canvas id="canvas" />
-    <video
-      ref="liveVid"
-      class="video-js vjs-default-skin"
-    >
-      <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
-      <!-- <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml"> -->
-    </video>
+    <div id="jsmpeg-player" class="video-js vjs-live vjs-liveui" v-show="showLivePlayer">
+      <canvas id="canvas" />
+      <div class="jsmpeg-controls-bar vjs-control-bar">
+        <button @click="livePause" class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause">
+          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+        </button>
+        <button @click="livePlay" class="vjs-play-control vjs-control vjs-button vjs-paused" type="button" title="Play">
+          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+        </button>
+        <!-- <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal">
+          <button class="vjs-mute-control vjs-control vjs-button vjs-vol-3" type="button" title="Mute">
+            <span aria-hidden="true" class="vjs-icon-placeholder"></span><span class="vjs-control-text" aria-live="polite">Mute</span>
+          </button>
+          <div class="vjs-volume-control vjs-control vjs-volume-horizontal">
+            <div tabindex="0" class="vjs-volume-bar vjs-slider-bar vjs-slider vjs-slider-horizontal" role="slider" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="Volume Level" aria-live="polite" aria-valuetext="100%">
+              <div class="vjs-volume-level">
+                <span class="vjs-control-text"></span>
+              </div>
+            </div>
+          </div>
+        </div> -->
+        <button @click="switchToUnlive" class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live">
+          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+          <span class="vjs-seek-to-live-text" aria-hidden="true">UNLIVE</span>
+        </button>
+        <button class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false">
+          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+          <span class="vjs-control-text" aria-live="polite">Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="unlive-player" v-show="showUnlivePlayer">
+      <video
+        ref="liveVid"
+        class="video-js vjs-default-skin"
+      >
+        <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
+        <!-- <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml"> -->
+      </video>
+    </div>
+
+    <div v-if="!showLivePlayer && !showUnlivePlayer" id="join-button" class="video-js">
+      <span>Join Stream</span>
+      <button class="vjs-big-play-button" title="Join Stream" @click="joinStream">
+        <span aria-hidden="true" class="vjs-icon-placeholder"/>
+      </button>
+    </div>
 
     <div id="chatSideBar">
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
       <div id="triggersContainer">
-        <div id="sync" @click="sendMessage({flag: 'syncRequest'})">
+        <div id="sync" @click="messaging.sendMessage({flag: 'syncRequest'})">
           Sync To Others
         </div>
-        <div id="sync" @click="sendMessage({flag: 'clientStatus'})">
+        <div id="sync" @click="messaging.sendMessage({flag: 'clientStatus'})">
           Status Check
         </div>
       </div>
@@ -91,8 +131,10 @@ class Live {
       newMessage: '',
       myName: generateName(),
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
-      firstPlaySync: false, //on the first play sync to others
+      livePlayerLoaded: false, //on the first play sync to others
       lastSyncedTime: null,
+      showLivePlayer: false,
+      showUnlivePlayer: false,
     };
   }
 
@@ -109,22 +151,26 @@ class Live {
         return 'Jump Back';
       case 'seekToLive':
         return 'LIVE';
+      case 'seekToUnlive':
+        return 'UNLIVE';
       default:
         return input;
     }
   }
 
   mounted() {
-    const mpegPlayer = new JSMpeg.Player('pipe', {
+    this.livePlayer = new JSMpeg.Player('pipe', {
       source: JSMpegPipeSource,
       canvas: document.getElementById('canvas'),
       pauseWhenHidden: false,
       onPlay: () => {
-        mpegPlayer.stop();
-        console.log('no wousr');
+        if(!this.livePlayerLoaded) {
+          this.livePlayer.stop();
+          this.livePlayerLoaded = true;
+        }
       }
     });
-    window.mpegPlayer = mpegPlayer;
+    window.livePlayer = this.livePlayer;
     //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
@@ -143,37 +189,24 @@ class Live {
       backIndex: 0,
     });
 
-    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, mpegPlayer);
+    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, this.livePlayer, eventHandlers);
 
-    //save the eventhandlers so they can be en/disabled dynamically
-    const eventHandlers = {
-      play: (e) => {
-        if(e.cancelBubble) return;
-        if(this.firstPlaySync) this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
-      },
-      pause: () => this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' }),
-      seek: () => this.messaging.sendMessage({ flag: 'seek', replace: true, action: 'syncAction' }),
-      seekForward: () => this.messaging.sendMessage({ flag: 'seekForward', action: 'syncAction' }),
-      seekBack: () => this.messaging.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
-      seekToLive: () => this.messaging.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
-    };
+    const eventHandlers = this.messaging.eventHandlers;
 
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.on('play', eventHandlers.play);
-      this.video.on('pause', eventHandlers.pause);
+      this.video.on('pause', () => {
+        if(!this.showUnlivePlayer) return;
+        eventHandlers.pause();
+      });
       this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.seek);
       this.video.controlBar.seekForward.on('click', eventHandlers.seekForward);
       this.video.controlBar.seekBack.on('click', eventHandlers.seekBack);
-      this.video.controlBar.seekToLive.on('click', eventHandlers.seekToLive);
-    });
-
-    this.video.on('playing', () => {
-      //on first play request an update to the current time
-      if(!this.firstPlaySync) {
-        this.firstPlaySync = true;
-        this.messaging.sendMessage({ flag: 'syncRequest' });
-      }
+      this.video.controlBar.seekToLive.on('click', () => {
+        this.switchToLive();
+        eventHandlers.seekToLive();
+      });
     });
 
     window.video = this.video;
@@ -213,6 +246,48 @@ class Live {
     window.chats = this.$refs.chatMessages;
     this.$refs.chatMessages.osInstance().scroll('100%');
   }
+
+  joinStream() {
+    this.messaging.streamJoined = true;
+    //on join request an update to the current time and status of peers
+    this.messaging.sendMessage({ flag: 'syncRequest' });
+
+    if(this.messaging.isLiveVideo) this.switchToLive();
+    else this.switchToUnlive();
+  }
+
+  livePlay() {
+    this.livePlayer.play();
+    this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' })
+  }
+
+  livePause() {
+    this.livePlayer.pause();
+    this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' })
+  }
+
+  switchToLive() {
+    //disable unlive player events, then pause it
+    this.showUnlivePlayer = false;
+    this.video.pause();
+
+    this.showLivePlayer = true;
+    this.livePlayer.play();
+    this.messaging.isLiveVideo = true;
+  }
+
+  switchToUnlive() {
+    this.showUnlivePlayer = true;
+    this.showLivePlayer = false;
+
+    //start unlive player, then enable events
+    this.video.play().then(() => {
+      this.messaging.sendMessage({ flag: 'seekToUnlive', replace: true, action: 'syncAction' });
+    });
+
+    this.livePlayer.pause();
+    this.messaging.isLiveVideo = false;
+  }
 }
 </script>
 
@@ -230,11 +305,6 @@ class Live {
 
   #liveVid {
     display: none;
-  }
-
-  canvas {
-    height: 600px;
-    width: 600px;
   }
 
   input {
@@ -275,6 +345,28 @@ class Live {
   // Try changing to true
   $center-big-play-button: true; // true default
 
+  #jsmpeg-player {
+    display: flex;
+    flex-direction: column;
+
+    canvas {
+      width: 100%;
+      flex: 1;
+    }
+
+    .jsmpeg-controls-bar {
+      width: 100%;
+      display: flex;
+
+      .vjs-play-control {
+        height: auto;
+      }
+      .vjs-seek-to-live-control {
+        margin-left: auto;
+      }
+    }
+  }
+
   .video-js {
     /* The base font size controls the size of everything, not just text.
       All dimensions use em-based sizes so that the scale along with the font size.
@@ -284,7 +376,7 @@ class Live {
     /* The main font color changes the ICON COLORS as well as the text */
     color: $primary-foreground-color;
     height: 100%;
-    flex: 1;
+    width: 100%;
 
     .vjs-tech {
       pointer-events: none;
@@ -338,24 +430,29 @@ class Live {
       /* Otherwise we'll rely on stacked opacities */
       background: rgba($slider-bg-color, 0.9);
     }
+  }
+
+  #unlive-player {
+    flex: 1;
+  }
+
+  #join-button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 
     &:hover .vjs-big-play-button {
       background-color: rgba(0,0,0,.95);
-      border-color: #a0422d;
+      border-color: $primary-foreground-color;
     }
 
-    /* The "Big Play Button" is the play button that shows before the video plays.
-      To center it set the align values to center and middle. The typical location
-      of the button is the center, but there is trend towards moving it to a corner
-      where it gets out of the way of valuable content in the poster image.*/
     .vjs-big-play-button {
+      position: relative;
       font-size: 2.5em;
-      border: 0.06666em solid $primary-foreground-color;
       border-radius: 0.2em;
       outline: none;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
+      left: 0;
     }
   }
 

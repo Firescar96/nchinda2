@@ -13,7 +13,6 @@ class JSMpegPipeSource {
 
   connect(destination) {
     this.destination = destination;
-    window.destination = destination;
   }
 
   destroy() {

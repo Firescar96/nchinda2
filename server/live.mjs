@@ -20,8 +20,16 @@ const streamClients = {};
 function onConnection(socket) {
   socket.once('message', (data) => {
     const message = JSON.parse(data);
+    socket.roomName = message.name;
     streamClients[message.name] = streamClients[message.name] || new ClientGroupManager(message.name);
     streamClients[message.name].addClient(socket);
+  });
+
+  socket.on('close', () => {
+    // if this is the last client delete all history of this room
+    if(Object.keys(streamClients[socket.roomName].clients).length === 1) {
+      delete streamClients[socket.roomName];
+    }
   });
 }
 
