@@ -7,6 +7,7 @@ class ClientGroupManager {
   constructor(name) {
     this.name = name;
     this.clients = {};
+    this.isLiveVideo = true;
     this.clientsWaitingToSync = []; //clients who have requested a timecheck
     this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
 
@@ -18,6 +19,8 @@ class ClientGroupManager {
     this.webrtcClient = new WebrtcClient();
 
     //TODO this signal should only be sent to the client who requested it
+    //maybe it can be figured out via the signal? Or maybe every client needs their
+    //own webrtc client like websockets
     // this.webrtcClient.client.on('signal', (signal) => {
     //   const rawdata = JSON.stringify({
     //     flag: 'webrtcSignal',
@@ -29,35 +32,43 @@ class ClientGroupManager {
   }
 
   initializeLiveTranscoder(name) {
-    const videoSpawnOptions = [
-      '-re',
+    //helpful documentation on ffmpeg streaming https://trac.ffmpeg.org/wiki/StreamingGuide
+    //and on some flags https://ffmpeg.org/ffmpeg-all.html#rtsp
+
+    const commonOptions = [
       '-i',
-      'rtmp://nchinda2.com/live/'+this.name,
+      `rtmp://nchinda2.com/live/${this.name}`,
+      '-reconnect',
+      '1',
+      '-reconnect_at_eof',
+      '1',
+      '-reconnect_streamed',
+      '1',
+      '-reconnect_delay_max',
+      '10',
       '-f',
-      'mpegts',
+      'mpegts'
+    ];
+
+    const videoSpawnOptions = commonOptions.concat([
       '-codec:v',
       'mpeg1video',
       '-an',
       '-',
-    ];
-    
-    const videoStream = childProcess.spawn('ffmpeg', videoSpawnOptions, {
+    ]);
+
+    this.videoStream = childProcess.spawn('ffmpeg', videoSpawnOptions, {
       detached: false,
     });
-    
-    const audioSpawnOptions = [
-      '-re',
-      '-i',
-      'rtmp://nchinda2.com/live/'+this.name,
-      '-f',
-      'mpegts',
+
+    const audioSpawnOptions = commonOptions.concat([
       '-vn',
       '-codec:a',
       'mp2',
       '-',
-    ];
+    ]);
 
-    const audioStream = childProcess.spawn('ffmpeg', audioSpawnOptions, {
+    this.audioStream = childProcess.spawn('ffmpeg', audioSpawnOptions, {
       detached: false,
     });
 
@@ -68,8 +79,8 @@ class ClientGroupManager {
       });
       this.broadcastMessage(rawdata);
     };
-    videoStream.stdout.on('data', liveStreamCallback);
-    audioStream.stdout.on('data', liveStreamCallback);
+    this.videoStream.stdout.on('data', liveStreamCallback);
+    this.audioStream.stdout.on('data', liveStreamCallback);
   }
 
   addClient(ws) {
@@ -114,6 +125,7 @@ class ClientGroupManager {
             const responseMessage = {
               flag: 'syncResponse',
               lastFrameTime: minimumTime,
+              isLiveVideo: this.isLiveVideo,
               isPaused,
             };
             clientWS.send(JSON.stringify(responseMessage));
@@ -148,6 +160,7 @@ class ClientGroupManager {
           ws.send(JSON.stringify({ flag: 'clientStatus', status }));
         case 'ping':
           this.clients[ws.id].update(data);
+          this.isLiveVideo = data.isLiveVideo;
           ws.send(JSON.stringify({ flag: 'pong' }));
           break;
         default:
@@ -162,6 +175,12 @@ class ClientGroupManager {
       if(ws && client.id == ws.id) return;
       client.websocket.send(rawdata);
     });
+  }
+
+  destroy() {
+    this.webrtcClient.client.destroy();
+    this.videoStream.kill();
+    this.audioStream.kill();
   }
 }
 

@@ -21,7 +21,7 @@
             </div>
           </div>
         </div> -->
-        <button @click="switchToUnlive" class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live">
+        <button @click="liveUnlive" class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live">
           <span aria-hidden="true" class="vjs-icon-placeholder"></span>
           <span class="vjs-seek-to-live-text" aria-hidden="true">UNLIVE</span>
         </button>
@@ -189,15 +189,15 @@ class Live {
       backIndex: 0,
     });
 
-    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, this.livePlayer, eventHandlers);
+    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, this.livePlayer, this.switchToLive, this.switchToUnlive);
 
-    const eventHandlers = this.messaging.eventHandlers;
+    const {eventHandlers} = this.messaging;
 
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.on('play', eventHandlers.play);
       this.video.on('pause', () => {
-        if(!this.showUnlivePlayer) return;
+        // if(!this.showUnlivePlayer) return;
         eventHandlers.pause();
       });
       this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.seek);
@@ -265,8 +265,14 @@ class Live {
     this.livePlayer.pause();
     this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' })
   }
+  
+  liveUnlive() {
+    this.switchToUnlive()
+ this.messaging.sendMessage({ flag: 'seekToUnlive', replace: true, action: 'syncAction' });
+  }
 
   switchToLive() {
+    console.log('switchToLive', this)
     //disable unlive player events, then pause it
     this.showUnlivePlayer = false;
     this.video.pause();
@@ -276,14 +282,15 @@ class Live {
     this.messaging.isLiveVideo = true;
   }
 
+
+
   switchToUnlive() {
+    console.log('switchToUnlive')
     this.showUnlivePlayer = true;
     this.showLivePlayer = false;
 
     //start unlive player, then enable events
-    this.video.play().then(() => {
-      this.messaging.sendMessage({ flag: 'seekToUnlive', replace: true, action: 'syncAction' });
-    });
+    this.video.play();
 
     this.livePlayer.pause();
     this.messaging.isLiveVideo = false;

@@ -5,13 +5,15 @@ import constants from '../constants';
 const { SKIP_BACK_SECONDS } = constants;
 
 class MessagingManager {
-  constructor(lobbyName, myName, video, displayMessage, livePlayer) {
+  constructor(lobbyName, myName, video, displayMessage, livePlayer, switchToLive, switchToUnlive) {
     this.lobbyName = lobbyName;
     this.myName = myName;
     this.isLiveVideo = true;
     this.streamJoined = false;
     this.video = video;
     this.livePlayer = livePlayer;
+    this.switchToLive = switchToLive;
+    this.switchToUnlive = switchToUnlive;
     this.displayMessage = displayMessage;
     this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
@@ -58,9 +60,11 @@ class MessagingManager {
     }
 
     if(message.flag === 'syncRequest' && this.streamJoined) {
+      const isPaused = this.isLiveVideo ? this.livePlayer.paused : this.video.paused();
       this.sendMessage({
         flag: 'syncResponse',
-        isPaused: this.video.paused(),
+        isPaused,
+        isLiveVideo: this.isLiveVideo,
       });
     }
 
@@ -87,12 +91,14 @@ class MessagingManager {
       });
     }
 
-    if(message.flag == 'seekToLive') this.isLiveVideo = true;
-    if(message.flag == 'seekToUnLive') this.isLiveVideo = false;
-    console.log('messages this.streamJoined', message, this.streamJoined)
+    console.log('message.flag', message)
+    if(message.flag == 'seekToLive') this.switchToLive();
+    if(message.flag == 'seekToUnlive') this.switchToUnlive();
+    
     if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.streamJoined) {
+      console.log('syncRequest', message)
       this.video.currentTime(message.lastFrameTime);
-      console.log('this.streamJoined', this.streamJoined)
+      
       //!! is required to ensure isPaused is cast to a boolean
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
