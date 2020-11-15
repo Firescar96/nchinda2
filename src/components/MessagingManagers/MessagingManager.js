@@ -22,7 +22,6 @@ class MessagingManager {
       this.sendMessage({ flag: 'webrtcSignal', signal });
     });
 
-
     //save the eventhandlers so they can be en/disabled dynamically
     this.eventHandlers = {
       play: (e) => this.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' }),
@@ -91,28 +90,28 @@ class MessagingManager {
       });
     }
 
-    console.log('message.flag', message)
-    if(message.flag == 'seekToLive') this.switchToLive();
-    if(message.flag == 'seekToUnlive') this.switchToUnlive();
-    
+    //console.log('message.flag', message.flag);
+    if(message.flag === 'seekToLive') this.switchToLive();
+    if(message.flag === 'seekToUnlive') this.switchToUnlive();
+
     if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.streamJoined) {
-      console.log('syncRequest', message)
       this.video.currentTime(message.lastFrameTime);
-      
+
       //!! is required to ensure isPaused is cast to a boolean
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
 
-        //adding this in the propagation chain stops event propagating
-        this.video.one(action, (e) => e.stopImmediatePropagation());
-
-        //the event must be removed and readded so it comes after the 'one' event that will disable it in the propagation chain
-        this.video.off(action, this.eventHandlers[action]);
-        this.video.on(action, this.eventHandlers[action]);
-        //TODO: hello uncomment the above
-        console.log('this.isLiveVideo', this.isLiveVideo)
         if(this.isLiveVideo) this.livePlayer[action]();
-        else this.video[action]();
+        else {
+          //adding this in the propagation chain stops event propagating
+          this.video.one(action, (e) => e.stopImmediatePropagation());
+
+          //the event must be removed and readded so it comes after the 'one' event above that will disable it in the propagation chain
+          this.video.off(action, this.eventHandlers[action]);
+          this.video.on(action, this.eventHandlers[action]);
+
+          this.video[action]();
+        }
       }
     }
 

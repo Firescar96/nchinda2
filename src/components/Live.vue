@@ -1,38 +1,38 @@
 <template>
   <div id="livePage">
-    <div id="jsmpeg-player" class="video-js vjs-live vjs-liveui" v-show="showLivePlayer">
+    <div v-show="showLivePlayer" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
       <canvas id="canvas" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
-        <button @click="livePause" class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause">
-          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+        <button class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
+          <span aria-hidden="true" class="vjs-icon-placeholder" />
         </button>
-        <button @click="livePlay" class="vjs-play-control vjs-control vjs-button vjs-paused" type="button" title="Play">
-          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+        <button class="vjs-play-control vjs-control vjs-button vjs-paused" type="button" title="Play" @click="livePlay">
+          <span aria-hidden="true" class="vjs-icon-placeholder" />
         </button>
-        <!-- <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal">
+        <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal">
           <button class="vjs-mute-control vjs-control vjs-button vjs-vol-3" type="button" title="Mute">
-            <span aria-hidden="true" class="vjs-icon-placeholder"></span><span class="vjs-control-text" aria-live="polite">Mute</span>
+            <span aria-hidden="true" class="vjs-icon-placeholder" /><span class="vjs-control-text" aria-live="polite">Mute</span>
           </button>
           <div class="vjs-volume-control vjs-control vjs-volume-horizontal">
             <div tabindex="0" class="vjs-volume-bar vjs-slider-bar vjs-slider vjs-slider-horizontal" role="slider" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="Volume Level" aria-live="polite" aria-valuetext="100%">
               <div class="vjs-volume-level">
-                <span class="vjs-control-text"></span>
+                <span class="vjs-control-text" />
               </div>
             </div>
           </div>
-        </div> -->
-        <button @click="liveUnlive" class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live">
-          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+        </div>
+        <button class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live" @click="liveUnlive">
+          <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-seek-to-live-text" aria-hidden="true">UNLIVE</span>
         </button>
         <button class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false">
-          <span aria-hidden="true" class="vjs-icon-placeholder"></span>
+          <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-control-text" aria-live="polite">Fullscreen</span>
         </button>
       </div>
     </div>
 
-    <div id="unlive-player" v-show="showUnlivePlayer">
+    <div v-show="showUnlivePlayer" id="unlive-player">
       <video
         ref="liveVid"
         class="video-js vjs-default-skin"
@@ -45,7 +45,7 @@
     <div v-if="!showLivePlayer && !showUnlivePlayer" id="join-button" class="video-js">
       <span>Join Stream</span>
       <button class="vjs-big-play-button" title="Join Stream" @click="joinStream">
-        <span aria-hidden="true" class="vjs-icon-placeholder"/>
+        <span aria-hidden="true" class="vjs-icon-placeholder" />
       </button>
     </div>
 
@@ -162,15 +162,26 @@ class Live {
     this.livePlayer = new JSMpeg.Player('pipe', {
       source: JSMpegPipeSource,
       canvas: document.getElementById('canvas'),
-      pauseWhenHidden: false,
+      videoBufferSize: 4096 * 1024,
+      audioBufferSize: 248 * 1024,
+      //this does prevent certain show/hide calls from jsmpeg, but I think Vivaldi throttles background pages and pauses ops
+      //pauseWhenHidden: false,
+      //this option doesn't seem to influence playback on my desktop
+      //preserveDrawingBuffer: true,
+      //this option doesn't seem to influence playback on my desktop
+      //throttled: false,
       onPlay: () => {
+        //the livePlayer automatically starts, so stop it on the first run
         if(!this.livePlayerLoaded) {
           this.livePlayer.stop();
           this.livePlayerLoaded = true;
         }
-      }
+      },
+      onPause: () => {
+        console.log('pausing live player');
+      },
     });
-    window.livePlayer = this.livePlayer;
+
     //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
@@ -191,13 +202,13 @@ class Live {
 
     this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, this.livePlayer, this.switchToLive, this.switchToUnlive);
 
-    const {eventHandlers} = this.messaging;
+    const { eventHandlers } = this.messaging;
 
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.on('play', eventHandlers.play);
       this.video.on('pause', () => {
-        // if(!this.showUnlivePlayer) return;
+        //if(!this.showUnlivePlayer) return;
         eventHandlers.pause();
       });
       this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.seek);
@@ -243,7 +254,6 @@ class Live {
     this.messages.push(message);
 
     await this.$nextTick();
-    window.chats = this.$refs.chatMessages;
     this.$refs.chatMessages.osInstance().scroll('100%');
   }
 
@@ -258,21 +268,20 @@ class Live {
 
   livePlay() {
     this.livePlayer.play();
-    this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' })
+    this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
   }
 
   livePause() {
     this.livePlayer.pause();
-    this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' })
+    this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' });
   }
-  
+
   liveUnlive() {
-    this.switchToUnlive()
- this.messaging.sendMessage({ flag: 'seekToUnlive', replace: true, action: 'syncAction' });
+    this.switchToUnlive();
+    this.messaging.sendMessage({ flag: 'seekToUnlive', replace: true, action: 'syncAction' });
   }
 
   switchToLive() {
-    console.log('switchToLive', this)
     //disable unlive player events, then pause it
     this.showUnlivePlayer = false;
     this.video.pause();
@@ -282,17 +291,16 @@ class Live {
     this.messaging.isLiveVideo = true;
   }
 
-
-
   switchToUnlive() {
-    console.log('switchToUnlive')
     this.showUnlivePlayer = true;
     this.showLivePlayer = false;
+
+    //order is important, shutdown the live player before loading the unlive player
+    this.livePlayer.pause();
 
     //start unlive player, then enable events
     this.video.play();
 
-    this.livePlayer.pause();
     this.messaging.isLiveVideo = false;
   }
 }

@@ -25,14 +25,6 @@ class WebsocketClient {
 
       this.sendMessage({ flag: 'peerConnect', name: this.myName });
     });
-
-    //this.connection.on('close', () => {
-    //const reconnectID = setInterval(() => {
-    //this.sendMessage({flag: 'ping', name:this.myName})
-    //}, 500)
-
-    //this.sendMessage({flag: 'peerConnect', name:this.myName})
-    //})
   }
 }
 

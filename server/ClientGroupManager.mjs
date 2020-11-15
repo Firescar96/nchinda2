@@ -21,14 +21,14 @@ class ClientGroupManager {
     //TODO this signal should only be sent to the client who requested it
     //maybe it can be figured out via the signal? Or maybe every client needs their
     //own webrtc client like websockets
-    // this.webrtcClient.client.on('signal', (signal) => {
-    //   const rawdata = JSON.stringify({
-    //     flag: 'webrtcSignal',
-    //     signal,
-    //   });
-    //   // ws.send(JSON.stringify(data));
-    //   this.broadcastMessage(rawdata);
-    // });
+    //this.webrtcClient.client.on('signal', (signal) => {
+    //const rawdata = JSON.stringify({
+    //flag: 'webrtcSignal',
+    //signal,
+    //});
+    //// ws.send(JSON.stringify(data));
+    //this.broadcastMessage(rawdata);
+    //});
   }
 
   initializeLiveTranscoder(name) {
@@ -47,7 +47,7 @@ class ClientGroupManager {
       '-reconnect_delay_max',
       '10',
       '-f',
-      'mpegts'
+      'mpegts',
     ];
 
     const videoSpawnOptions = commonOptions.concat([
@@ -59,6 +59,8 @@ class ClientGroupManager {
 
     this.videoStream = childProcess.spawn('ffmpeg', videoSpawnOptions, {
       detached: false,
+      //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
 
     const audioSpawnOptions = commonOptions.concat([
@@ -70,6 +72,8 @@ class ClientGroupManager {
 
     this.audioStream = childProcess.spawn('ffmpeg', audioSpawnOptions, {
       detached: false,
+      //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
 
     const liveStreamCallback = (data) => {
@@ -94,7 +98,6 @@ class ClientGroupManager {
       });
       delete this.clients[ws.id];
     });
-
 
     ws.on('message', (rawdata) => {
       const data = JSON.parse(rawdata);
