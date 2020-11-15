@@ -1,3 +1,12 @@
+# 2.5
+
+### Features
+* Live video now uses a separate playback pathway based on websockets, ffmpeg, and [mpeg files](https://jsmpeg.com/perf.html).
+* clicking directly on the video no longer toggles play/pause (common user misclick)
+
+# Bug Introductions
+* "Status Check" button does not support the new live player
+
 # 2.4.2
 
 ### Bug Fixes

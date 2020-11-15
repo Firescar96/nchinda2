@@ -355,15 +355,16 @@ class Live {
   #jsmpeg-player {
     display: flex;
     flex-direction: column;
+    justify-content: center;
 
     canvas {
       width: 100%;
-      flex: 1;
     }
 
     .jsmpeg-controls-bar {
       width: 100%;
       display: flex;
+      margin-top: auto;
 
       .vjs-play-control {
         height: auto;
