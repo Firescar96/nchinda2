@@ -52,8 +52,12 @@ class ClientGroupManager {
       '0.1',
       '-f',
       'mpegts',
+      '-b:v',
+      '900k',
       '-codec:v',
       'mpeg1video',
+      '-codec:a',
+      'mp2',
       '-',
     ];
 

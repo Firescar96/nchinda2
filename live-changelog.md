@@ -1,11 +1,12 @@
-# 2.5
+# 2.5.0-beta
 
 ### Features
-* Live video now uses a separate playback pathway based on websockets, ffmpeg, and [mpeg files](https://jsmpeg.com/perf.html).
+* (Beta) Live video now uses a separate playback pathway based on websockets, ffmpeg, and [mpeg files](https://jsmpeg.com/perf.html).
 * clicking directly on the video no longer toggles play/pause (common user misclick)
 
 # Bug Introductions
 * "Status Check" button does not support the new live player
+* In the first few seconds of a new stream videojs hides the LIVE selector
 
 # 2.4.2
 
