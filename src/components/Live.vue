@@ -42,7 +42,7 @@
       </video>
     </div>
 
-    <div v-if="!showLivePlayer && !showUnlivePlayer" id="join-button" class="video-js">
+    <div v-if="notJoinedStream" id="join-button" class="video-js">
       <span>Join Stream</span>
       <button class="vjs-big-play-button" title="Join Stream" @click="joinStream">
         <span aria-hidden="true" class="vjs-icon-placeholder" />
@@ -54,8 +54,8 @@
         conTROLLbox
       </h3>
       <div id="triggersContainer">
-        <div id="sync" @click="messaging.sendMessage({flag: 'syncRequest'})">
-          Sync To Others
+        <div id="sync" @click="messaging.sendMessage({flag: 'syncToMe'})">
+          Sync To Me
         </div>
         <div id="sync" @click="messaging.sendMessage({flag: 'clientStatus'})">
           Status Check
@@ -65,7 +65,7 @@
         <p>My Name:</p>
         <input id="nameSelection" v-model="myName">
       </div>
-      <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light">
+      <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light os-host-flexbox">
         <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta, myMessage: message.myMessage}">
           <p v-if="!message.myMessage && !message.isMeta">
             {{ message.name }}:
@@ -127,12 +127,13 @@ export default
 class Live {
   data() {
     return {
-      messages: [{ isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.' }],
+      messages: [{ isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.' }, { isMeta: true, name: 'Meta', text: 'Live video is currently still in beta.' }],
       newMessage: '',
       myName: generateName(),
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
-      livePlayerLoaded: false, //on the first play sync to others
       lastSyncedTime: null,
+      notJoinedStream: true,
+      isLiveVideo: true,
       showLivePlayer: false,
       showUnlivePlayer: false,
     };
@@ -159,29 +160,6 @@ class Live {
   }
 
   mounted() {
-    this.livePlayer = new JSMpeg.Player('pipe', {
-      source: JSMpegPipeSource,
-      canvas: document.getElementById('canvas'),
-      videoBufferSize: 4096 * 1024,
-      audioBufferSize: 248 * 1024,
-      //this does prevent certain show/hide calls from jsmpeg, but I think Vivaldi throttles background pages and pauses ops
-      //pauseWhenHidden: false,
-      //this option doesn't seem to influence playback on my desktop
-      //preserveDrawingBuffer: true,
-      //this option doesn't seem to influence playback on my desktop
-      //throttled: false,
-      onPlay: () => {
-        //the livePlayer automatically starts, so stop it on the first run
-        if(!this.livePlayerLoaded) {
-          this.livePlayer.stop();
-          this.livePlayerLoaded = true;
-        }
-      },
-      onPause: () => {
-        console.log('pausing live player');
-      },
-    });
-
     //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
@@ -200,16 +178,16 @@ class Live {
       backIndex: 0,
     });
 
-    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this.video, this.displayMessage, this.livePlayer, this.switchToLive, this.switchToUnlive);
+    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this);
 
     const { eventHandlers } = this.messaging;
 
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
-      this.video.on('play', eventHandlers.play);
-      this.video.on('pause', () => {
-        //if(!this.showUnlivePlayer) return;
-        eventHandlers.pause();
+      this.video.controlBar.playToggle.on('click', (e) => {
+        console.log('on play toggle');
+        if(this.video.paused()) eventHandlers.pause();
+        else eventHandlers.play();
       });
       this.video.controlBar.progressControl.seekBar.on('mouseup', eventHandlers.seek);
       this.video.controlBar.seekForward.on('click', eventHandlers.seekForward);
@@ -221,6 +199,7 @@ class Live {
     });
 
     window.video = this.video;
+    window.livePlayer = this.livePlayer;
   }
 
   jumpToTime(time) {
@@ -258,11 +237,33 @@ class Live {
   }
 
   joinStream() {
+    this.livePlayer = new JSMpeg.Player('pipe', {
+      source: JSMpegPipeSource,
+      canvas: document.getElementById('canvas'),
+      //this does prevent certain show/hide calls from jsmpeg, but I think Vivaldi throttles background pages and pauses operations anyway
+      //settings this does help though, otherwise if I tab away, someone pauses, and I tab back jsmpeg will play the video
+      pauseWhenHidden: false,
+      //this option doesn't seem to influence playback on my desktop
+      //preserveDrawingBuffer: true,
+      //this option doesn't seem to influence playback on my desktop
+      //throttled: false,
+      videoBufferSize: 0,
+      audioBufferSize: 0,
+      onEnded(player) {
+        console.log('onEnded');
+      },
+      onStalled(player) {
+        player.pause();
+        console.log('onStalled', player);
+      },
+    });
+
+    this.notJoinedStream = false;
     this.messaging.streamJoined = true;
     //on join request an update to the current time and status of peers
     this.messaging.sendMessage({ flag: 'syncRequest' });
 
-    if(this.messaging.isLiveVideo) this.switchToLive();
+    if(this.isLiveVideo) this.switchToLive();
     else this.switchToUnlive();
   }
 
@@ -284,24 +285,24 @@ class Live {
   switchToLive() {
     //disable unlive player events, then pause it
     this.showUnlivePlayer = false;
-    this.video.pause();
-
     this.showLivePlayer = true;
+
+    this.video.pause();
     this.livePlayer.play();
-    this.messaging.isLiveVideo = true;
+    this.isLiveVideo = true;
   }
 
-  switchToUnlive() {
-    this.showUnlivePlayer = true;
+  async switchToUnlive() {
     this.showLivePlayer = false;
+    this.showUnlivePlayer = true;
 
-    //order is important, shutdown the live player before loading the unlive player
+    //order isn't important, but shutdown the live player before loading the unlive player
     this.livePlayer.pause();
 
     //start unlive player, then enable events
-    this.video.play();
+    await this.video.play();
 
-    this.messaging.isLiveVideo = false;
+    this.isLiveVideo = false;
   }
 }
 </script>
@@ -481,6 +482,7 @@ class Live {
     #chatTitle {
       color: #f008;
       padding: 0 10px;
+      width: 300px;
     }
 
     #triggersContainer {

@@ -2,13 +2,13 @@ class JSMpegPipeSource {
   constructor(url, options) {
     this.url = url;
     this.options = options;
-    this.streaming = true;
 
+    //video/audio output desination
     this.destination = null;
 
-    this.running = false;
-
-    this.completed = false;
+    //streaming tells jsmpeg to not collect timestamps and use the latest frame
+    //unfortunately it also forces jsmpeg autoplay on, so we can't create the jsmpeg instance til after we want to start making noise
+    this.streaming = true;
   }
 
   connect(destination) {
@@ -27,7 +27,7 @@ class JSMpegPipeSource {
   resume(secondsHeadroom) {}
 
   write(data) {
-    if(this.destination && this.running) {
+    if(this.destination && this.established) {
       this.destination.write(data);
     }
   }

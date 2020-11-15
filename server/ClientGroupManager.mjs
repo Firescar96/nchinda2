@@ -35,7 +35,7 @@ class ClientGroupManager {
     //helpful documentation on ffmpeg streaming https://trac.ffmpeg.org/wiki/StreamingGuide
     //and on some flags https://ffmpeg.org/ffmpeg-all.html#rtsp
 
-    const commonOptions = [
+    const mediaSpawnOptions = [
       '-i',
       `rtmp://nchinda2.com/live/${this.name}`,
       '-reconnect',
@@ -46,31 +46,18 @@ class ClientGroupManager {
       '1',
       '-reconnect_delay_max',
       '10',
+      '-tune',
+      'zerolatency',
+      '-muxdelay',
+      '0.1',
       '-f',
       'mpegts',
-    ];
-
-    const videoSpawnOptions = commonOptions.concat([
       '-codec:v',
       'mpeg1video',
-      '-an',
       '-',
-    ]);
+    ];
 
-    this.videoStream = childProcess.spawn('ffmpeg', videoSpawnOptions, {
-      detached: false,
-      //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-
-    const audioSpawnOptions = commonOptions.concat([
-      '-vn',
-      '-codec:a',
-      'mp2',
-      '-',
-    ]);
-
-    this.audioStream = childProcess.spawn('ffmpeg', audioSpawnOptions, {
+    this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
       detached: false,
       //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -83,8 +70,7 @@ class ClientGroupManager {
       });
       this.broadcastMessage(rawdata);
     };
-    this.videoStream.stdout.on('data', liveStreamCallback);
-    this.audioStream.stdout.on('data', liveStreamCallback);
+    this.mediaStream.stdout.on('data', liveStreamCallback);
   }
 
   addClient(ws) {
@@ -110,6 +96,7 @@ class ClientGroupManager {
           this.clients[ws.id].lastFrameTime = data.lastFrameTime;
           this.clients[ws.id].isPaused = data.isPaused;
           this.clients[ws.id].ackedSyncRequest = true;
+          if('isLiveVideo' in data) this.isLiveVideo = data.isLiveVideo;
 
           const numSyncResponses = Object.values(this.clients).reduce((a, b) => (b.ackedSyncRequest ? a + 1 : a), 0);
 
@@ -154,18 +141,24 @@ class ClientGroupManager {
             client.ackedSyncRequest = false;
           });
           break;
-        case 'clientStatus':
+        case 'syncToMe': {
+          this.broadcastMessage(rawdata, ws);
+          break;
+        }
+        case 'clientStatus': {
           const status = Object.values(this.clients)
             .map((x) => ({
               name: x.name,
               lastFrameTime: x.lastFrameTime,
             }));
           ws.send(JSON.stringify({ flag: 'clientStatus', status }));
-        case 'ping':
+          break;
+        }
+        case 'ping': {
           this.clients[ws.id].update(data);
-          this.isLiveVideo = data.isLiveVideo;
           ws.send(JSON.stringify({ flag: 'pong' }));
           break;
+        }
         default:
           //default is to echo the data to everyone
           this.broadcastMessage(rawdata, ws);
@@ -182,8 +175,9 @@ class ClientGroupManager {
 
   destroy() {
     this.webrtcClient.client.destroy();
-    this.videoStream.kill();
-    this.audioStream.kill();
+    //this.videoStream.kill('SIGINT');
+    //this.audioStream.kill('SIGINT');
+    this.mediaStream.kill();
   }
 }
 

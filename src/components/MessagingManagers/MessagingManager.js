@@ -5,16 +5,11 @@ import constants from '../constants';
 const { SKIP_BACK_SECONDS } = constants;
 
 class MessagingManager {
-  constructor(lobbyName, myName, video, displayMessage, livePlayer, switchToLive, switchToUnlive) {
+  constructor(lobbyName, myName, videoController) {
     this.lobbyName = lobbyName;
     this.myName = myName;
-    this.isLiveVideo = true;
+    this.videoController = videoController;
     this.streamJoined = false;
-    this.video = video;
-    this.livePlayer = livePlayer;
-    this.switchToLive = switchToLive;
-    this.switchToUnlive = switchToUnlive;
-    this.displayMessage = displayMessage;
     this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
 
@@ -34,22 +29,22 @@ class MessagingManager {
   }
 
   sendMessage(message) {
-    message.lastFrameTime = this.video.currentTime();
+    message.lastFrameTime = this.videoController.video.currentTime();
     message.name = this.myName;
     this.websocketClient.connection.send(JSON.stringify(message));
 
     if(message.action === 'syncAction') {
       message.isMeta = true;
-      this.displayMessage(message);
+      this.videoController.displayMessage(message);
     }
   }
 
   receiveData(data) {
     const message = JSON.parse(data);
 
-    if(message.flag == 'liveStreamData') {
+    if(message.flag == 'liveStreamData' && this.streamJoined && this.streamJoined) {
       const messageData = new Uint8Array(message.data).buffer;
-      this.livePlayer.source.write(messageData);
+      this.videoController.livePlayer.source.write(messageData);
       return;
     }
 
@@ -59,11 +54,11 @@ class MessagingManager {
     }
 
     if(message.flag === 'syncRequest' && this.streamJoined) {
-      const isPaused = this.isLiveVideo ? this.livePlayer.paused : this.video.paused();
+      const isPaused = this.videoController.isLiveVideo ? this.videoController.livePlayer.paused : this.videoController.video.paused();
       this.sendMessage({
         flag: 'syncResponse',
         isPaused,
-        isLiveVideo: this.isLiveVideo,
+        isLiveVideo: this.videoController.isLiveVideo,
       });
     }
 
@@ -91,26 +86,32 @@ class MessagingManager {
     }
 
     //console.log('message.flag', message.flag);
-    if(message.flag === 'seekToLive') this.switchToLive();
-    if(message.flag === 'seekToUnlive') this.switchToUnlive();
+    if(message.flag === 'seekToLive') this.videoController.switchToLive();
+    if(message.flag === 'seekToUnlive') this.videoController.switchToUnlive();
 
-    if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse'].includes(message.flag) && this.streamJoined) {
-      this.video.currentTime(message.lastFrameTime);
+    if(message.flag == 'syncResponse') {
+      if(this.videoController.isLiveVideo != message.isLiveVideo) {
+        if(message.isLiveVideo) this.videoController.switchToLive();
+        else this.videoController.switchToUnlive();
+      }
+    }
+
+    if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse', 'syncToMe'].includes(message.flag) && this.streamJoined) {
+      this.videoController.video.currentTime(message.lastFrameTime);
 
       //!! is required to ensure isPaused is cast to a boolean
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
-
-        if(this.isLiveVideo) this.livePlayer[action]();
+        if(this.videoController.isLiveVideo) this.videoController.livePlayer[action]();
         else {
-          //adding this in the propagation chain stops event propagating
-          this.video.one(action, (e) => e.stopImmediatePropagation());
+          ////adding this in the propagation chain stops event propagating
+          //this.videoController.video.one(action, (e) => e.stopImmediatePropagation());
 
-          //the event must be removed and readded so it comes after the 'one' event above that will disable it in the propagation chain
-          this.video.off(action, this.eventHandlers[action]);
-          this.video.on(action, this.eventHandlers[action]);
+          ////the event must be removed and readded so it comes after the 'one' event above that will disable it in the propagation chain
+          //this.videoController.video.off(action, this.eventHandlers[action]);
+          //this.videoController.video.on(action, this.eventHandlers[action]);
 
-          this.video[action]();
+          this.videoController.video[action]();
         }
       }
     }
@@ -120,8 +121,8 @@ class MessagingManager {
       message.action = 'syncAction';
     }
 
-    if(['pong', 'syncRequest', 'syncResponse'].includes(message.flag)) return;
-    this.displayMessage(message);
+    if(['pong', 'syncRequest', 'syncResponse', 'syncToMe', 'liveStreamData'].includes(message.flag)) return;
+    this.videoController.displayMessage(message);
   }
 }
 export default MessagingManager;
