@@ -1,5 +1,5 @@
 import WebsocketClient from './WebsocketClient';
-import WebRTCClient from './WebRTCClient';
+//import WebRTCClient from './WebRTCClient';
 import constants from '../constants';
 
 const { SKIP_BACK_SECONDS } = constants;
@@ -10,12 +10,12 @@ class MessagingManager {
     this.myName = myName;
     this.videoController = videoController;
     this.streamJoined = false;
-    this.webrtcClient = new WebRTCClient();
+    //this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
 
-    this.webrtcClient.client.on('signal', (signal) => {
-      this.sendMessage({ flag: 'webrtcSignal', signal });
-    });
+    //this.webrtcClient.client.on('signal', (signal) => {
+    //this.sendMessage({ flag: 'webrtcSignal', signal });
+    //});
 
     //save the eventhandlers so they can be en/disabled dynamically
     this.eventHandlers = {
@@ -48,10 +48,11 @@ class MessagingManager {
       return;
     }
 
-    if(message.flag == 'webrtcSignal') {
-      this.webrtcClient.client.signal(message.signal);
-      return;
-    }
+    //Coming Soon
+    //if(message.flag == 'webrtcSignal') {
+    //this.webrtcClient.client.signal(message.signal);
+    //return;
+    //}
 
     if(message.flag === 'syncRequest' && this.streamJoined) {
       const isPaused = this.videoController.isLiveVideo ? this.videoController.livePlayer.paused : this.videoController.video.paused();
