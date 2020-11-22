@@ -10,6 +10,7 @@ class ClientGroupManager {
     this.isLiveVideo = true;
     this.clientsWaitingToSync = []; //clients who have requested a timecheck
     this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
+    this.liveVideoMoov = []; // save the first output from ffmpeg, for initializing new clients
 
     this.initializeLiveTranscoder();
     this.initializeWebRTC();
@@ -34,8 +35,10 @@ class ClientGroupManager {
   initializeLiveTranscoder(name) {
     //helpful documentation on ffmpeg streaming https://trac.ffmpeg.org/wiki/StreamingGuide
     //and on some flags https://ffmpeg.org/ffmpeg-all.html#rtsp
-
+    //what do the numbers in an avc codec mean https://lists.ffmpeg.org/pipermail/ffmpeg-user/2015-October/028984.html
+    //https://stackoverflow.com/questions/48588511/prepare-mp4-videos-for-media-source-extensions-api-using-ffmpeg
     const mediaSpawnOptions = [
+      '-re', //realtime? I heard it's good for livestreams and bad for writing to a file, streaming doesn't seem to work without it, the output is more regular with this flag
       '-i',
       `rtmp://nchinda2.com/live/${this.name}`,
       '-reconnect',
@@ -46,18 +49,28 @@ class ClientGroupManager {
       '1',
       '-reconnect_delay_max',
       '10',
-      '-tune',
-      'zerolatency',
-      '-muxdelay',
-      '0.1',
+      // -tune zerolatency left out, doesn't seem to do anything
       '-f',
-      'mpegts',
-      '-b:v',
-      '900k',
+      'mp4', //use the mp4 container
+      // '-fflags', //https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg
+      // 'nobuffer',
+      // -flags cgop+low_delay non of these flags work
+      '-preset',
+      'ultrafast',
+      '-pix_fmt',
+      'yuv420p', //required for browsers to be able to play this
+      '-movflags',
+      'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
+      '-profile:v',
+      'main', //changes the codec
+      '-level:v',
+      '3.2', //changes the codec
+      '-g', //change Group of Picture size, default of 12 is too long -> image stuttering in live video
+      '1',
       '-codec:v',
-      'mpeg1video',
+      'h264',
       '-codec:a',
-      'mp2',
+      'aac',
       '-',
     ];
 
@@ -72,6 +85,8 @@ class ClientGroupManager {
         flag: 'liveStreamData',
         data: data.toJSON().data,
       });
+      //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1?
+      if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
       this.broadcastMessage(rawdata);
     };
     this.mediaStream.stdout.on('data', liveStreamCallback);
@@ -80,6 +95,9 @@ class ClientGroupManager {
   addClient(ws) {
     //ws shouldn't be in the global scope of arguments, but must be scoped to this function
     this.clients[ws.id] = new WSClient(ws);
+
+    if(this.liveVideoMoov) this.liveVideoMoov.forEach(x => ws.send(x));
+    console.log(this.liveVideoMoov)
 
     ws.on('close', () => {
       Object.values(this.clients).forEach((client) => {

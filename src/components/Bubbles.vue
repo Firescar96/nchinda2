@@ -43,7 +43,6 @@
         </div>
       </div>
     </div>
-    </video>
   </div>
 </template>
 
@@ -207,7 +206,7 @@ class Bubbles {
           .attr('transform', (d) => `translate(${d.x},${d.y})`);
 
         for(let i = this.bubbles.length - 1; i >= 0; i--) {
-          if(this.bubbles[i].id == 'mouse') continue;
+          if(this.bubbles[i].id === 'mouse') continue;
 
           if(this.bubbles[i].x < -50 || this.bubbles[i].x > window.innerWidth + 50 || this.bubbles[i].y < 0) {
             this.bubbles.splice(i, 1);

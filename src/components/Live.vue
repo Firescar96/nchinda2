@@ -1,7 +1,8 @@
 <template>
   <div id="livePage">
+    
     <div v-show="showLivePlayer" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
-      <canvas id="canvas" />
+      <video id="futuristicPlayer" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
         <button class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
@@ -159,7 +160,21 @@ class Live {
     }
   }
 
+  setupFuturisticPlayer() {
+    this.livePlayer = document.querySelector('video');
+    const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
+    const mediaSource = new MediaSource();
+    this.livePlayer.src = URL.createObjectURL(mediaSource);
+
+    mediaSource.addEventListener('sourceopen', () => {
+      this.livePlayer.sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+      // using sequence allows clients joining an existing stream to skip ahead to the latest received packets, not waiting for a packet to fill a gap
+      this.livePlayer.sourceBuffer.mode = 'sequence';
+    });
+  }
+
   mounted() {
+    this.setupFuturisticPlayer();
     //initialize videojs with options
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
@@ -185,7 +200,6 @@ class Live {
     //onReady setup the handlers for different user interactions
     this.video.on('ready', () => {
       this.video.controlBar.playToggle.on('click', (e) => {
-        console.log('on play toggle');
         if(this.video.paused()) eventHandlers.pause();
         else eventHandlers.play();
       });
@@ -199,7 +213,6 @@ class Live {
     });
 
     window.video = this.video;
-    window.livePlayer = this.livePlayer;
   }
 
   jumpToTime(time) {
@@ -237,27 +250,6 @@ class Live {
   }
 
   joinStream() {
-    this.livePlayer = new JSMpeg.Player('pipe', {
-      source: JSMpegPipeSource,
-      canvas: document.getElementById('canvas'),
-      //this does prevent certain show/hide calls from jsmpeg, but I think Vivaldi throttles background pages and pauses operations anyway
-      //settings this does help though, otherwise if I tab away, someone pauses, and I tab back jsmpeg will play the video
-      pauseWhenHidden: false,
-      //this option doesn't seem to influence playback on my desktop
-      //preserveDrawingBuffer: true,
-      //this option doesn't seem to influence playback on my desktop
-      //throttled: false,
-      videoBufferSize: 0,
-      audioBufferSize: 0,
-      onEnded(player) {
-        console.log('onEnded');
-      },
-      onStalled(player) {
-        player.pause();
-        console.log('onStalled', player);
-      },
-    });
-
     this.notJoinedStream = false;
     this.messaging.streamJoined = true;
     //on join request an update to the current time and status of peers
@@ -267,8 +259,10 @@ class Live {
     else this.switchToUnlive();
   }
 
-  livePlay() {
-    this.livePlayer.play();
+  async livePlay() {
+    await this.livePlayer.play();
+    //on play resynchronize back to the beginning
+    this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
   }
 
@@ -308,16 +302,21 @@ class Live {
 </script>
 
 <style lang="scss">
-@import 'videojs-seek-buttons/dist/videojs-seek-buttons.css';
-
 #livePage {
   position: absolute;
   width: 100vw;
   height: 100vh;
+  top: 0;
+  left: 0;
   z-index: 200;
   display: flex;
   flex-direction: row;
   color: white;
+
+  #futuristicPlayer {
+    width: 800px;
+    height: 800px;
+  }
 
   #liveVid {
     display: none;
@@ -366,7 +365,7 @@ class Live {
     flex-direction: column;
     justify-content: center;
 
-    canvas {
+    video {
       width: 100%;
     }
 

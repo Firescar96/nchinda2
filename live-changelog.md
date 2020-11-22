@@ -1,3 +1,9 @@
+# 2.5.0-beta.1
+* Removed and replaced jsmpeg with a native solution using mp4 files and the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource) 
+
+### Research
+* closely reviewed all ffmpeg flags for better liveplayback
+
 # 2.5.0-beta
 
 ### Features

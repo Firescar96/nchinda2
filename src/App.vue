@@ -23,20 +23,23 @@
       </div>
     </nav>
     <router-view class="main" />
+    <link href="https://vjs.zencdn.net/7.6.6/video-js.css" rel="stylesheet" >
   </div>
 </template>
+<style src='overlayscrollbars/css/OverlayScrollbars.css'></style>
+<style src='videojs-seek-buttons/dist/videojs-seek-buttons.css'></style>
 <style lang="scss">
-@import 'overlayscrollbars/css/OverlayScrollbars.css';
-
 html, body {
   margin: 0;
 }
 
 #app {
   display: flex;
+  position: relative; //all children should use this as their top level container
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 
   nav {
     display: flex;

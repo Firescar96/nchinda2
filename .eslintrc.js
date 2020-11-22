@@ -24,7 +24,7 @@ module.exports = {
   settings: {
     'import/resolver': {
       webpack: {
-        config: 'build/webpack.base.conf.js',
+        config: './.webpack.config.js',
       },
     },
   },
@@ -40,7 +40,7 @@ module.exports = {
     'no-inner-declarations': 0,
     'class-methods-use-this': [0, { exceptMethods: ['data', 'computed'] }],
     'no-underscore-dangle': [2, { allowAfterThis: true }],
-
+    'no-continue': 0,
     /**
     * General
     */

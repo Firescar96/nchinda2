@@ -12,7 +12,7 @@ class MessagingManager {
     this.streamJoined = false;
     //this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
-
+    this.videoBuffer = [];
     //this.webrtcClient.client.on('signal', (signal) => {
     //this.sendMessage({ flag: 'webrtcSignal', signal });
     //});
@@ -42,9 +42,15 @@ class MessagingManager {
   receiveData(data) {
     const message = JSON.parse(data);
 
-    if(message.flag == 'liveStreamData' && this.streamJoined && this.streamJoined) {
-      const messageData = new Uint8Array(message.data).buffer;
-      this.videoController.livePlayer.source.write(messageData);
+    if(message.flag == 'liveStreamData') {
+      this.videoBuffer = this.videoBuffer.concat(message.data);
+
+      if(this.videoController.livePlayer.sourceBuffer && !this.videoController.livePlayer.sourceBuffer.updating) {
+        const messageData = new Uint8Array(this.videoBuffer).buffer;
+        this.videoBuffer = [];
+        this.videoController.livePlayer.sourceBuffer.appendBuffer(messageData);
+      }
+
       return;
     }
 
