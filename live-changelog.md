@@ -1,6 +1,13 @@
 # 2.5.0-beta.1
 * Removed and replaced jsmpeg with a native solution using mp4 files and the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource) 
 
+### Features
+* play/pause is a toggle button
+
+### Bug Fixes
+* Time Check supports the new live player
+* the first few seconds of a new stream videojs now is forced to show the LIVE selector
+
 ### Research
 * closely reviewed all ffmpeg flags for better liveplayback
 
@@ -11,7 +18,7 @@
 * clicking directly on the video no longer toggles play/pause (common user misclick)
 
 # Bug Introductions
-* "Status Check" button does not support the new live player
+* "Status Check" or "Time Check" button does not support the new live player
 * In the first few seconds of a new stream videojs hides the LIVE selector
 
 # 2.4.2

@@ -1,25 +1,18 @@
 <template>
   <div id="livePage">
-    
+
     <div v-show="showLivePlayer" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
       <video id="futuristicPlayer" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
-        <button class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
+        <button v-if="!isLivePaused" class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
         </button>
-        <button class="vjs-play-control vjs-control vjs-button vjs-paused" type="button" title="Play" @click="livePlay">
+        <button v-if="isLivePaused" class="vjs-play-control vjs-control vjs-button vjs-paused" type="button" title="Play" @click="livePlay">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
         </button>
-        <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal">
-          <button class="vjs-mute-control vjs-control vjs-button vjs-vol-3" type="button" title="Mute">
-            <span aria-hidden="true" class="vjs-icon-placeholder" /><span class="vjs-control-text" aria-live="polite">Mute</span>
-          </button>
+        <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal vjs-hover">
           <div class="vjs-volume-control vjs-control vjs-volume-horizontal">
-            <div tabindex="0" class="vjs-volume-bar vjs-slider-bar vjs-slider vjs-slider-horizontal" role="slider" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="Volume Level" aria-live="polite" aria-valuetext="100%">
-              <div class="vjs-volume-level">
-                <span class="vjs-control-text" />
-              </div>
-            </div>
+            <input v-model="liveVolumeLevel" type="range" min="0" max="1" step=".01" @change="liveUpdateVolume" class="slider">
           </div>
         </div>
         <button class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live" @click="liveUnlive">
@@ -39,7 +32,6 @@
         class="video-js vjs-default-skin"
       >
         <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
-        <!-- <source :src="'https://nchinda2.africa:8395/dash/'+$route.params.stream+'.mpd'" type="application/dash+xml"> -->
       </video>
     </div>
 
@@ -59,7 +51,7 @@
           Sync To Me
         </div>
         <div id="sync" @click="messaging.sendMessage({flag: 'clientStatus'})">
-          Status Check
+          Time Check
         </div>
       </div>
       <div id="nameSelectionBox">
@@ -116,10 +108,8 @@ import { Watch } from 'vue-property-decorator';
 //eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
 import { generateName } from '@/utility';
-import JSMpeg from '@cycjimmy/jsmpeg-player';
 import MessagingManager from './MessagingManagers/MessagingManager';
 import constants from './constants';
-import JSMpegPipeSource from './JSMpegPipeSource';
 
 const { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } = constants;
 
@@ -134,7 +124,10 @@ class Live {
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
       lastSyncedTime: null,
       notJoinedStream: true,
+      isLivePaused: false,
       isLiveVideo: true,
+      liveVolumeLevel: 1,
+      showingProgressBar: false,
       showLivePlayer: false,
       showUnlivePlayer: false,
     };
@@ -171,6 +164,7 @@ class Live {
       // using sequence allows clients joining an existing stream to skip ahead to the latest received packets, not waiting for a packet to fill a gap
       this.livePlayer.sourceBuffer.mode = 'sequence';
     });
+    window.livePlayer = this.livePlayer;
   }
 
   mounted() {
@@ -264,11 +258,18 @@ class Live {
     //on play resynchronize back to the beginning
     this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
+    this.isLivePaused = false;
   }
 
   livePause() {
     this.livePlayer.pause();
     this.messaging.sendMessage({ flag: 'pause', isPaused: true, action: 'syncAction' });
+    this.isLivePaused = true;
+  }
+
+  liveUpdateVolume() {
+    console.log('liveUpdateVolume', this.liveVolumeLevel)
+    this.livePlayer.volume = this.liveVolumeLevel;
   }
 
   liveUnlive() {
@@ -293,7 +294,12 @@ class Live {
     //order isn't important, but shutdown the live player before loading the unlive player
     this.livePlayer.pause();
 
-    //start unlive player, then enable events
+    //changing the source triggers videojs to reload and do a check on the length of the loaded video
+    //if video.liveTracker.liveWindow() > 30 (seconds) then the progreess bar will be shown, I don't know of a more intuitive way to trigger this refresh otherwise
+    if(!this.showingProgressBar && this.video.liveTracker.liveWindow() > 30) {
+      this.showingProgressBar = true;
+      this.video.src(`https://nchinda2.africa:8395/hls/${this.$route.params.stream}.m3u8`);
+    }
     await this.video.play();
 
     this.isLiveVideo = false;
@@ -322,14 +328,7 @@ class Live {
     display: none;
   }
 
-  input {
-    background: transparent;
-    outline: none;
-    border: none;
-    border-bottom: solid 1px white;
-    padding: 0 5px;
-    color: white;
-  }
+  
 
   /*
     Player Skin Designer for Video.js
@@ -376,6 +375,42 @@ class Live {
 
       .vjs-play-control {
         height: auto;
+      }
+      .vjs-volume-control {
+        .slider {
+          appearance: none;
+          width: 100%;
+          height: 6px;
+          background: $primary-foreground-color;
+          border: none;
+          outline: none;
+          opacity: 0.7;
+          transition: .2s;
+          margin: auto 0;
+        }
+
+        .slider:hover {
+          opacity: 1;
+        }
+
+        /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none; /* Override default look */
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: $primary-foreground-color;
+          cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: $primary-foreground-color;
+          cursor: pointer;
+        }
       }
       .vjs-seek-to-live-control {
         margin-left: auto;
@@ -428,6 +463,14 @@ class Live {
     .vjs-play-progress,
     .vjs-slider-bar {
       background: $primary-foreground-color;
+    }
+
+    .vjs-live-control {
+      display: none;
+    }
+    .vjs-seek-to-live-control {
+      display: flex;
+      margin-left: auto;
     }
 
     /* The main progress bar also has a bar that shows how much has been loaded. */
@@ -496,6 +539,15 @@ class Live {
         border-radius: 5px;
         cursor: pointer;
       }
+    }
+
+    input {
+      background: transparent;
+      outline: none;
+      border: none;
+      border-bottom: solid 1px white;
+      padding: 0 5px;
+      color: white;
     }
 
     #nameSelectionBox {

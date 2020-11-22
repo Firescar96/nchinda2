@@ -29,7 +29,8 @@ class MessagingManager {
   }
 
   sendMessage(message) {
-    message.lastFrameTime = this.videoController.video.currentTime();
+    if(this.videoController.isLiveVideo) message.lastFrameTime = this.videoController.livePlayer.currentTime;
+    else message.lastFrameTime = this.videoController.video.currentTime();
     message.name = this.myName;
     this.websocketClient.connection.send(JSON.stringify(message));
 
@@ -70,6 +71,7 @@ class MessagingManager {
     }
 
     if(message.flag === 'clientStatus') {
+      console.log('message', message.status[0])
       Object.assign(message, {
         isMeta: true,
         action: 'clientStatus',
@@ -110,16 +112,7 @@ class MessagingManager {
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
         if(this.videoController.isLiveVideo) this.videoController.livePlayer[action]();
-        else {
-          ////adding this in the propagation chain stops event propagating
-          //this.videoController.video.one(action, (e) => e.stopImmediatePropagation());
-
-          ////the event must be removed and readded so it comes after the 'one' event above that will disable it in the propagation chain
-          //this.videoController.video.off(action, this.eventHandlers[action]);
-          //this.videoController.video.on(action, this.eventHandlers[action]);
-
-          this.videoController.video[action]();
-        }
+        else this.videoController.video[action]();
       }
     }
 
