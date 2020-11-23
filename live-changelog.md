@@ -1,15 +1,29 @@
-# 2.5.0-beta.1
-* Removed and replaced jsmpeg with a native solution using mp4 files and the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource) 
+# 2.5.0 - Friedel-Crafts Acylation
 
 ### Features
+* added an "is typing" indicator
+* added fullscreen button to both players that maximizes video and chat together
+
+### Meta
+* names for notable versions
+
+# 2.5.0-beta.1
+### Features
 * play/pause is a toggle button
+* Removed and replaced jsmpeg with a native solution using mp4 files and the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource) 
 
 ### Bug Fixes
 * Time Check supports the new live player
 * the first few seconds of a new stream videojs now is forced to show the LIVE selector
 
+### Design Updates
+* added placeholder favicon
+
 ### Research
-* closely reviewed all ffmpeg flags for better liveplayback
+* closely reviewed all ffmpeg flags for better live playback
+
+### Errata
+* removed all webpack boilerplate and started configs from scratch as a minimal vue app, builds are now faster
 
 # 2.5.0-beta
 
@@ -92,7 +106,7 @@
 
 * Changed sync all viewers button to sync only the clicker of the button
 
-# 1.0.0
+# 1.0.0 - Nchindacast
 ### Features
 * Added sync all viewers button
 * Syncing between clients on play/pause/seek

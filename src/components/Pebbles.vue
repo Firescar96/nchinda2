@@ -71,7 +71,7 @@ class Pebbles {
 <style lang="scss">
 @font-face {
     font-family: "NovaFlat";
-    src: url("../../static/fonts/Nova_Flat/NovaFlat-Regular.ttf");
+    src: url("/fonts/Nova_Flat/NovaFlat-Regular.ttf");
 }
 
 #pebblesPage {

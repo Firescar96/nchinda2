@@ -79,14 +79,14 @@ class Snowflake {
 <style lang="scss">
 @font-face {
     font-family: "Aladin";
-    src: url("../../static/fonts/Aladin/Aladin-Regular.ttf");
+    src: url("/fonts/Aladin/Aladin-Regular.ttf");
 }
 
 #snowflakePage {
   font-family: 'Aladin';
   font-size: 25px;
   background-color: #bfd0cf;
-  background-image: url('../../static/images/snowflake-paper.jpg');
+  background-image: url('/images/snowflake-paper.jpg');
   background-blend-mode: color-burn;
 
   .postSummary {
@@ -247,7 +247,7 @@ class Snowflake {
       width: 30px;
       height: 30px;
       background-size: cover;
-      background-image:url("../../static/images/snowflake.png");
+      background-image:url("/images/snowflake.png");
       animation: fallingSnow 12s infinite linear;
       transform: translateY(-80px);
     }

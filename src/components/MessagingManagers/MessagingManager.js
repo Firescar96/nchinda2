@@ -10,9 +10,10 @@ class MessagingManager {
     this.myName = myName;
     this.videoController = videoController;
     this.streamJoined = false;
-    //this.webrtcClient = new WebRTCClient();
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
     this.videoBuffer = [];
+    this.isActiveTyping = false;
+    //this.webrtcClient = new WebRTCClient();
     //this.webrtcClient.client.on('signal', (signal) => {
     //this.sendMessage({ flag: 'webrtcSignal', signal });
     //});
@@ -29,9 +30,13 @@ class MessagingManager {
   }
 
   sendMessage(message) {
+    //add required parameters to each message
     if(this.videoController.isLiveVideo) message.lastFrameTime = this.videoController.livePlayer.currentTime;
     else message.lastFrameTime = this.videoController.video.currentTime();
+    message.isActiveTyping = this.isActiveTyping;
     message.name = this.myName;
+
+    //send it
     this.websocketClient.connection.send(JSON.stringify(message));
 
     if(message.action === 'syncAction') {
@@ -42,6 +47,10 @@ class MessagingManager {
 
   receiveData(data) {
     const message = JSON.parse(data);
+
+    if(message.flag == 'pong') {
+      this.videoController.currentlyTyping = message.currentlyTyping;
+    }
 
     if(message.flag == 'liveStreamData') {
       this.videoBuffer = this.videoBuffer.concat(message.data);

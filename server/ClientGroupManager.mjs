@@ -178,7 +178,9 @@ class ClientGroupManager {
         }
         case 'ping': {
           this.clients[ws.id].update(data);
-          ws.send(JSON.stringify({ flag: 'pong' }));
+          const currentlyTyping = Object.values(this.clients).filter(c => c.isActiveTyping).map(c => c.name);
+
+          ws.send(JSON.stringify({ flag: 'pong', currentlyTyping }));
           break;
         }
         default:

@@ -65,7 +65,7 @@ class Firescar {
 <style lang="scss">
 @font-face {
     font-family: "VT323";
-    src: url("../../static/fonts/VT323/VT323-Regular.ttf");
+    src: url("/fonts/VT323/VT323-Regular.ttf");
 }
 
 #firescarPage {

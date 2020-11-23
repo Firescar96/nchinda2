@@ -31,7 +31,7 @@
             X
           </div>
           <div id="stamp">
-            <img src="/static/images/mexican-postage.jpg">
+            <img src="/images/mexican-postage.jpg">
           </div>
 
           <div id="address">
@@ -55,7 +55,7 @@ import { loadPosts } from '@/utility';
 import videojs from 'video.js';
 
 //this way bubble is only imported once via one network request
-import bubbleImg from '@/../static/images/bubble.png';
+import bubbleImg from '@/../public/images/bubble.png';
 
 const NUM_POSTS = 6;
 export default
@@ -83,7 +83,7 @@ class Bubbles {
     const player = videojs(this.$refs.backgroundVid);
     if(this.$route.query.video) {
       player.src({
-        src: `/static/videos/${this.$route.query.video}/master.m3u8`,
+        src: `/videos/${this.$route.query.video}/master.m3u8`,
         type: 'application/x-mpegURL',
         overrideNative: true,
       });
@@ -92,7 +92,7 @@ class Bubbles {
       player.src(
         {
           src: 'https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd',
-          //src: '/static/videos/clouds-5m/stream.mpd',
+          //src: '/videos/clouds-5m/stream.mpd',
           type: 'application/dash+xml',
         },
       );
@@ -237,7 +237,7 @@ class Bubbles {
 <style lang="scss">
 @font-face {
     font-family: "IndieFlower";
-    src: url("../../static/fonts/Indie_Flower/IndieFlower-Regular.ttf");
+    src: url("/fonts/Indie_Flower/IndieFlower-Regular.ttf");
 }
 
 #bubblesPage {
@@ -344,7 +344,7 @@ class Bubbles {
       display: flex;
       background-blend-mode: screen;
       background-color: #dadada;
-      background-image: url('/static/images/elmanana.jpg');
+      background-image: url('/images/elmanana.jpg');
       background-size: cover;
       text-align: left;
       padding: 5px;

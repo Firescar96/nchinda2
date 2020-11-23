@@ -10,6 +10,7 @@ class WSClient {
     this.name = data.name;
     this.loadingSyncComplete = data.loadingSyncComplete;
     this.lastFrameTime = data.lastFrameTime;
+    this.isActiveTyping = data.isActiveTyping;
   }
 }
 

@@ -3,7 +3,7 @@ import marked from 'marked';
 const loadPosts = async (persona, numposts, vueComponent) => {
   let posts = [];
   for(let i = numposts; i > 0; i--) {
-    posts.push(fetch(`/static/${persona}/${i}.md`));
+    posts.push(fetch(`/${persona}/${i}.md`));
   }
   posts = await Promise.all(posts);
   posts = posts.map(async (post) => post.text());
@@ -22,7 +22,7 @@ const loadPosts = async (persona, numposts, vueComponent) => {
 
     const fullText = marked
       .parser(tokens)
-      .replace(/\.\//g, `/static/${persona}/`);
+      .replace(/\.\//g, `/${persona}/`);
 
     return {
       title, date, fullText, index: posts.length - index,
@@ -33,6 +33,26 @@ const loadPosts = async (persona, numposts, vueComponent) => {
   vueComponent.posts = posts;
   if(!Number.isNaN(vueComponent.$route.query.post)) vueComponent.selectPost(vueComponent.$route.query.post);
 };
+
+function openFullscreen(elem) {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) { /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE11 */
+    elem.msRequestFullscreen();
+  }
+}
+
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) { /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE11 */
+    document.msExitFullscreen();
+  }
+}
 
 function capFirst(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -52,4 +72,4 @@ function generateName() {
   return name;
 }
 
-export { loadPosts, generateName };
+export { loadPosts, generateName, openFullscreen, closeFullscreen };

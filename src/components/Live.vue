@@ -1,6 +1,5 @@
 <template>
   <div id="livePage">
-
     <div v-show="showLivePlayer" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
       <video id="futuristicPlayer" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
@@ -19,7 +18,7 @@
           <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-seek-to-live-text" aria-hidden="true">UNLIVE</span>
         </button>
-        <button class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false">
+        <button @click="goFullScreen" class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-control-text" aria-live="polite">Fullscreen</span>
         </button>
@@ -95,7 +94,12 @@
           </div>
         </div>
       </overlay-scrollbars>
-      <input id="chatInput" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
+      <div v-if="currentlyTyping.length" id="typing-container">
+        ...
+        <span v-for="name in currentlyTyping">{{name}}</span>
+        is typing...
+      </div>
+      <input id="chatInput" @input="chatOnTyping" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
     </div>
   </div>
 </template>
@@ -107,7 +111,7 @@ import { Watch } from 'vue-property-decorator';
 //this attaches seekButtons to videojs
 //eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
-import { generateName } from '@/utility';
+import { generateName, openFullscreen, closeFullscreen } from '@/utility';
 import MessagingManager from './MessagingManagers/MessagingManager';
 import constants from './constants';
 
@@ -130,6 +134,8 @@ class Live {
       showingProgressBar: false,
       showLivePlayer: false,
       showUnlivePlayer: false,
+      currentlyTyping: [],
+      isFullscreen: false,
     };
   }
 
@@ -205,8 +211,10 @@ class Live {
         eventHandlers.seekToLive();
       });
     });
-
-    window.video = this.video;
+    
+    //overwrite the meaning of fullscreen so it always includes the chat
+    this.video.requestFullscreen = this.goFullScreen;
+    this.video.exitFullscreen = this.goFullScreen;
   }
 
   jumpToTime(time) {
@@ -222,6 +230,7 @@ class Live {
 
     this.messaging.sendMessage(message);
     this.newMessage = '';
+    this.messaging.isActiveTyping = false;
 
     this.displayMessage(message, true);
   }
@@ -253,6 +262,12 @@ class Live {
     else this.switchToUnlive();
   }
 
+  goFullScreen() {
+    if(this.isFullscreen) closeFullscreen();
+    else openFullscreen(document.documentElement);
+    this.isFullscreen = !this.isFullscreen;
+  }
+
   async livePlay() {
     await this.livePlayer.play();
     //on play resynchronize back to the beginning
@@ -268,7 +283,6 @@ class Live {
   }
 
   liveUpdateVolume() {
-    console.log('liveUpdateVolume', this.liveVolumeLevel)
     this.livePlayer.volume = this.liveVolumeLevel;
   }
 
@@ -304,6 +318,10 @@ class Live {
 
     this.isLiveVideo = false;
   }
+
+  chatOnTyping() {
+    this.messaging.isActiveTyping = !!this.newMessage;
+  }
 }
 </script>
 
@@ -318,11 +336,6 @@ class Live {
   display: flex;
   flex-direction: row;
   color: white;
-
-  #futuristicPlayer {
-    width: 800px;
-    height: 800px;
-  }
 
   #liveVid {
     display: none;
@@ -372,6 +385,15 @@ class Live {
       width: 100%;
       display: flex;
       margin-top: auto;
+      transition: 1s;
+      transition-delay: 1s;
+      opacity: 0;
+
+      &:hover {
+        opacity: 1;
+        transition: 0.1s;
+        transition-delay: 0s;
+      }
 
       .vjs-play-control {
         height: auto;
@@ -573,7 +595,6 @@ class Live {
     #chatMessages {
       flex: 1;
       font-size: 16px;
-      border-bottom: solid 2px white;
       padding: 0 10px;
       overflow-y: auto;
 
@@ -639,7 +660,13 @@ class Live {
       }
     }
 
+    #typing-container {
+      padding-left: 10px;
+      color: #999;
+    }
+
     input#chatInput {
+      border-top: solid 2px white;
       height: 40px;
       margin: 0 10px;
     }

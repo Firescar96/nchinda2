@@ -5,11 +5,11 @@
       <div id="livestreamBox">
         <div>Active Livestreams</div>
         <!-- <a id="sportDeath" class="livestream-link" href="/live/roast">
-          <img src="/static/live/sportdeath.png">
+          <img src="/live/sportdeath.png">
           <span>Steer Roast</span>
         </a> -->
         <a class="livestream-link" href="/live/lobby">
-          <img src="/static/live/homestuck_splatter_gamzee_makara_logo_by_kunfuzi-d776nvu.png">
+          <img src="/live/homestuck_splatter_gamzee_makara_logo_by_kunfuzi-d776nvu.png">
           <div>
             <span>Relax</span>
             <span>Be Me</span>
@@ -46,7 +46,7 @@ class Opener {
 <style lang="scss">
   @font-face {
       font-family: "IndieFlower";
-      src: url("../../static/fonts/Indie_Flower/IndieFlower-Regular.ttf");
+      src: url("/fonts/Indie_Flower/IndieFlower-Regular.ttf");
   }
 
   #opener {
@@ -131,21 +131,21 @@ class Opener {
     }
 
     #snowflakeSection:before {
-      background-image: url('/static/images/snowflake-logo.png');
+      background-image: url('/images/snowflake-logo.png');
       background-repeat: no-repeat;
       background-size: 180px;
       background-position-x: 10px;
       background-position-y: 0px;
     }
     #firescarSection:before {
-      background-image: url('/static/images/firescar-logo.png');
+      background-image: url('/images/firescar-logo.png');
       background-repeat: no-repeat;
       background-size: 240px;
       background-position-x: -20px;
       background-position-y: -10px;
     }
     #pebblesSection:before {
-      background-image: url('/static/images/pebbles-logo.png');
+      background-image: url('/images/pebbles-logo.png');
       background-size: cover;
       background-repeat: no-repeat;
       background-size: 180px;
@@ -153,7 +153,7 @@ class Opener {
       background-position-y: 0px;
     }
     #bubblesSection:before {
-      background-image: url('/static/images/bubbles-logo.png');
+      background-image: url('/images/bubbles-logo.png');
       background-size: cover;
     }
   }

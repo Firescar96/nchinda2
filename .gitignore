@@ -20,6 +20,6 @@ yarn-error.log*
 *.sln
 *.sw?
 
-static/*
+public/*
 cert.pem
 privkey.pem
