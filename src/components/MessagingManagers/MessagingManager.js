@@ -27,6 +27,22 @@ class MessagingManager {
       seekBack: () => this.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
       seekToLive: () => this.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
     };
+
+
+    this.videoController.livePlayer.mediaSource.addEventListener('sourceopen', () => {
+      const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
+      this.videoController.livePlayer.sourceBuffer = this.videoController.livePlayer.mediaSource.addSourceBuffer(mimeCodec);
+      // using sequence allows clients joining an existing stream to skip ahead to the latest received packets, not waiting for a packet to fill a gap
+      this.videoController.livePlayer.sourceBuffer.mode = 'sequence';
+
+      this.videoController.livePlayer.sourceBuffer.onupdateend = () => {
+        const messageData = new Uint8Array(this.videoBuffer).buffer;
+        this.videoBuffer = [];
+        this.videoController.livePlayer.sourceBuffer.appendBuffer(messageData);
+      };
+      // get the first onupdateend call going
+      this.videoController.livePlayer.sourceBuffer.appendBuffer(new ArrayBuffer())
+    });
   }
 
   sendMessage(message) {
@@ -54,12 +70,6 @@ class MessagingManager {
 
     if(message.flag == 'liveStreamData') {
       this.videoBuffer = this.videoBuffer.concat(message.data);
-
-      if(this.videoController.livePlayer.sourceBuffer && !this.videoController.livePlayer.sourceBuffer.updating) {
-        const messageData = new Uint8Array(this.videoBuffer).buffer;
-        this.videoBuffer = [];
-        this.videoController.livePlayer.sourceBuffer.appendBuffer(messageData);
-      }
 
       return;
     }

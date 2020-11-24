@@ -22,9 +22,9 @@
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
       <div id="postContent" ref="postContent">
-        <div id="messageBody">
+        <overlay-scrollbars id="messageBody">
           <div ref="generatedText" v-html="selectedPost.fullText" />
-        </div>
+        </overlay-scrollbars>
         <div class="divider" />
         <div id="shippingBody">
           <div class="back" @click="selectPost(null)">

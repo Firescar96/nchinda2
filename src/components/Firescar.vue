@@ -18,7 +18,7 @@
       </div>
 
       <!-- citation goes to http://www.patorjk.com/software/taag/ -->
-      <div id="postContent" ref="postContent">
+      <overlay-scrollbars id="postContent" ref="postContent" class="os-theme-light">
         <span class="termUser">firecar96@comsat1</span>
         <span class="termDir">~/public</span> $ cat posts/{{ selectedPost.index }}.md
         <div ref="generatedText" v-html="selectedPost.fullText" />
@@ -26,7 +26,7 @@
         <span class="termUser">firecar96@comsat1</span>
         <span class="termDir">~/public</span> $
         <span class="cursor" />
-      </div>
+      </overlay-scrollbars>
     </div>
   </div>
 </template>
@@ -35,7 +35,7 @@
 import Component from 'vue-class-component';
 import { loadPosts } from '@/utility';
 
-const NUM_POSTS = 9;
+const NUM_POSTS = 10;
 export default
 @Component()
 class Firescar {
@@ -167,7 +167,7 @@ class Firescar {
     position: absolute;
     top: 0;
     width: 100vw;
-    min-height: 100vh;
+    height: 100vh;
     color: white;
     background: black;
     z-index: 1000;
@@ -186,6 +186,8 @@ class Firescar {
       max-width: 960px;
       width: 80%;
       text-align: left;
+      height: 100%;
+      padding-right: 15px; //space for the scrollwheel
 
       // don't show title and date
       h1, h1+p {

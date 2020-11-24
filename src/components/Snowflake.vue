@@ -16,12 +16,12 @@
       <div class="back" @click="selectPost(null)">
         ←
       </div>
-      <div id="postContentBox">
+      <overlay-scrollbars id="postContentBox">
         <div id="postContent" ref="postContent">
           <div id="journalBackground" ref="journalBackground" />
           <div id="journalForeground" v-html="selectedPost.fullText" />
         </div>
-      </div>
+      </overlay-scrollbars>
     </div>
   </div>
 </template>
@@ -31,7 +31,7 @@ import Component from 'vue-class-component';
 import { Watch } from 'vue-property-decorator';
 import { loadPosts } from '@/utility';
 
-const NUM_POSTS = 6;
+const NUM_POSTS = 7;
 export default
 @Component()
 class Snowflake {
@@ -117,6 +117,8 @@ class Snowflake {
     width: 100vw;
     height: 100vh;
     z-index: 1000;
+    background: #fafdff;
+    display:flex;
 
     .back {
       position: absolute;
@@ -127,7 +129,8 @@ class Snowflake {
     }
 
     #postContentBox {
-      background: #fafdff;
+      height: 100%;
+      margin: 0 auto;
     }
 
     #postContent {

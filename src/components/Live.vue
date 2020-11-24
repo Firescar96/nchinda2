@@ -161,15 +161,9 @@ class Live {
 
   setupFuturisticPlayer() {
     this.livePlayer = document.querySelector('video');
-    const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
-    const mediaSource = new MediaSource();
-    this.livePlayer.src = URL.createObjectURL(mediaSource);
-
-    mediaSource.addEventListener('sourceopen', () => {
-      this.livePlayer.sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-      // using sequence allows clients joining an existing stream to skip ahead to the latest received packets, not waiting for a packet to fill a gap
-      this.livePlayer.sourceBuffer.mode = 'sequence';
-    });
+    this.livePlayer.mediaSource = new MediaSource();
+    this.livePlayer.src = URL.createObjectURL(this.livePlayer.mediaSource);
+    
     window.livePlayer = this.livePlayer;
   }
 
@@ -211,7 +205,7 @@ class Live {
         eventHandlers.seekToLive();
       });
     });
-    
+
     //overwrite the meaning of fullscreen so it always includes the chat
     this.video.requestFullscreen = this.goFullScreen;
     this.video.exitFullscreen = this.goFullScreen;

@@ -49,24 +49,32 @@ class ClientGroupManager {
       '1',
       '-reconnect_delay_max',
       '10',
+      '-strict',
+      'experimental',
       // -tune zerolatency left out, doesn't seem to do anything
       '-f',
       'mp4', //use the mp4 container
-      // '-fflags', //https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg
-      // 'nobuffer',
+      //https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg none of these seem to have an affect
+      //none of these options that are supposed to speedup seem to do anything
       // -flags cgop+low_delay non of these flags work
+      '-x264opts',
+      'keyint=2',//lower keyint than this significantly hurts quality
       '-preset',
       'ultrafast',
       '-pix_fmt',
       'yuv420p', //required for browsers to be able to play this
       '-movflags',
-      'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
+      'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof+disable_chpl', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
       '-profile:v',
       'main', //changes the codec
       '-level:v',
       '3.2', //changes the codec
-      '-g', //change Group of Picture size, default of 12 is too long -> image stuttering in live video
-      '1',
+      '-g', //change Group of Picture size, default of 250 is too long -> image stuttering in live video, and long start time latency
+      '2', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
+      '-b:v',
+      '5000k',
+      '-b:a',
+      '48k',
       '-codec:v',
       'h264',
       '-codec:a',
@@ -85,7 +93,7 @@ class ClientGroupManager {
         flag: 'liveStreamData',
         data: data.toJSON().data,
       });
-      //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1?
+      //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1 or gop+2?
       if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
       this.broadcastMessage(rawdata);
     };
@@ -97,7 +105,6 @@ class ClientGroupManager {
     this.clients[ws.id] = new WSClient(ws);
 
     if(this.liveVideoMoov) this.liveVideoMoov.forEach(x => ws.send(x));
-    console.log(this.liveVideoMoov)
 
     ws.on('close', () => {
       Object.values(this.clients).forEach((client) => {
