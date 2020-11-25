@@ -1,3 +1,12 @@
+# 2.5.1
+
+### Bug Fixes
+* time synchronization is to the max time of viewers, not minimum
+* center videojs big play button
+
+### Errata
+* change max stream length 6h -> 3h
+
 # 2.5.0 - Friedel-Crafts Acylation
 
 ### Features

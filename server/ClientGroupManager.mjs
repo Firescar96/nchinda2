@@ -70,11 +70,9 @@ class ClientGroupManager {
       '-level:v',
       '3.2', //changes the codec
       '-g', //change Group of Picture size, default of 250 is too long -> image stuttering in live video, and long start time latency
-      '2', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
-      '-b:v',
-      '5000k',
+      '1', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
       '-b:a',
-      '48k',
+      '128k', //random internet sources say don't go above this
       '-codec:v',
       'h264',
       '-codec:a',
@@ -121,7 +119,7 @@ class ClientGroupManager {
         case 'webrtcSignal':
           this.webrtcClient.client.signal(data.signal);
           break;
-        case 'syncResponse':
+        case 'syncResponse': {
           this.clients[ws.id].lastFrameTime = data.lastFrameTime;
           this.clients[ws.id].isPaused = data.isPaused;
           this.clients[ws.id].ackedSyncRequest = true;
@@ -131,19 +129,19 @@ class ClientGroupManager {
 
           if(numSyncResponses < this.numResponsesRequested) break;
 
-          let minimumTime = Number.MAX_SAFE_INTEGER;
+          let maximumTime = Number.MIN_SAFE_INTEGER;
           let isPaused = false;
           Object.values(this.clients).forEach((client) => {
             if(!client.ackedSyncRequest) return;
 
-            minimumTime = Math.min(minimumTime, client.lastFrameTime);
+            maximumTime = Math.max(maximumTime, client.lastFrameTime);
             isPaused |= client.isPaused;
           });
-          if(minimumTime == Number.MAX_SAFE_INTEGER) break;
+          if(maximumTime == Number.MIN_SAFE_INTEGER) break;
           this.clientsWaitingToSync.forEach((clientWS) => {
             const responseMessage = {
               flag: 'syncResponse',
-              lastFrameTime: minimumTime,
+              lastFrameTime: maximumTime,
               isLiveVideo: this.isLiveVideo,
               isPaused,
             };
@@ -156,6 +154,7 @@ class ClientGroupManager {
           });
 
           break;
+        }
         case 'syncRequest':
           this.numResponsesRequested = Object
             .keys(this.clients).length - 1;

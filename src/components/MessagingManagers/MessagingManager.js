@@ -125,13 +125,16 @@ class MessagingManager {
     }
 
     if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse', 'syncToMe'].includes(message.flag) && this.streamJoined) {
-      this.videoController.video.currentTime(message.lastFrameTime);
-
+      if(!this.videoController.isLiveVideo) {
+        this.videoController.video.currentTime(message.lastFrameTime);
+      }
       //!! is required to ensure isPaused is cast to a boolean
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
-        if(this.videoController.isLiveVideo) this.videoController.livePlayer[action]();
-        else this.videoController.video[action]();
+        if(this.videoController.isLiveVideo) {
+          this.videoController.livePlayer[action]();
+          this.videoController.livePlayer.currentTime = this.videoController.livePlayer.seekable.end(0);
+        } else this.videoController.video[action]();
       }
     }
 

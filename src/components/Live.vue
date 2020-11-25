@@ -209,6 +209,7 @@ class Live {
     //overwrite the meaning of fullscreen so it always includes the chat
     this.video.requestFullscreen = this.goFullScreen;
     this.video.exitFullscreen = this.goFullScreen;
+    window.video = this.video;
   }
 
   jumpToTime(time) {
@@ -292,6 +293,7 @@ class Live {
 
     this.video.pause();
     this.livePlayer.play();
+    if(this.livePlayer.buffered.length) this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.isLiveVideo = true;
   }
 
@@ -509,6 +511,14 @@ class Live {
 
   #unlive-player {
     flex: 1;
+
+    .vjs-big-play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-color: $primary-background-color;
+    }
   }
 
   #join-button {
