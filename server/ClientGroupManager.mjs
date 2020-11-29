@@ -92,7 +92,7 @@ class ClientGroupManager {
         data: data.toJSON().data,
       });
       //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1 or gop+2?
-      if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
+      if(this.liveVideoMoov.length < 1) this.liveVideoMoov.push(rawdata);
       this.broadcastMessage(rawdata);
     };
     this.mediaStream.stdout.on('data', liveStreamCallback);

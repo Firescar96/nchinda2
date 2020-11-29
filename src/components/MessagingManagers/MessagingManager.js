@@ -69,6 +69,7 @@ class MessagingManager {
     }
 
     if(message.flag == 'liveStreamData') {
+      console.log('live data')
       this.videoBuffer = this.videoBuffer.concat(message.data);
 
       return;
@@ -90,7 +91,6 @@ class MessagingManager {
     }
 
     if(message.flag === 'clientStatus') {
-      console.log('message', message.status[0])
       Object.assign(message, {
         isMeta: true,
         action: 'clientStatus',
@@ -113,7 +113,6 @@ class MessagingManager {
       });
     }
 
-    //console.log('message.flag', message.flag);
     if(message.flag === 'seekToLive') this.videoController.switchToLive();
     if(message.flag === 'seekToUnlive') this.videoController.switchToUnlive();
 

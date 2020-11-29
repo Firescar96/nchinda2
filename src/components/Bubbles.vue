@@ -81,7 +81,6 @@ class Bubbles {
     await loadPosts('bubbles', NUM_POSTS, this);
 
     const player = videojs(this.$refs.backgroundVid);
-    console.log('this.$route.query.video', this.$route)
     if(this.$route.query.video) {
       player.src({
         src: `/videos/${this.$route.query.video}/master.m3u8`,
@@ -89,7 +88,6 @@ class Bubbles {
         overrideNative: true,
       });
       this.focusVideo = true;
-      console.log('find video load')
     } else {
       player.src(
         {
@@ -102,7 +100,6 @@ class Bubbles {
   }
 
   selectPost(index) {
-    console.log('selectPost', index)
     if(index) {
       this.selectedPost = this.posts[this.posts.length - index];
     } else {
@@ -162,7 +159,6 @@ class Bubbles {
       this.updateGraphic();
     }, 500);
 
-    console.log('hello', this.simulation.nodes());
     //move the bubble around the page on every tick using a loose physics approximation
     this.simulation
       .alpha(1)
