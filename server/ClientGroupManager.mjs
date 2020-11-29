@@ -63,14 +63,17 @@ class ClientGroupManager {
       'ultrafast',
       '-pix_fmt',
       'yuv420p', //required for browsers to be able to play this
+      '-reset_timestamps',
+      '1', // this syncs up the timestamps when fragments are received in the browser
       '-movflags',
       'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof+disable_chpl', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
       '-profile:v',
       'main', //changes the codec
       '-level:v',
       '3.2', //changes the codec
-      '-g', //change Group of Picture size, default of 250 is too long -> image stuttering in live video, and long start time latency
-      '1', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
+      //it seems like after the reset_timestamps the buffer gets filled to fast if this isn't kept the same
+      //'-g', //change Group of Picture size, default of 12 is too long -> image stuttering in live video, and long start time latency
+      //'12', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
       '-b:a',
       '128k', //random internet sources say don't go above this
       '-codec:v',
@@ -92,7 +95,7 @@ class ClientGroupManager {
         data: data.toJSON().data,
       });
       //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1 or gop+2?
-      if(this.liveVideoMoov.length < 1) this.liveVideoMoov.push(rawdata);
+      if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
       this.broadcastMessage(rawdata);
     };
     this.mediaStream.stdout.on('data', liveStreamCallback);

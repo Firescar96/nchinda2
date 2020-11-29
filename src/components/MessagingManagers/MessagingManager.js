@@ -31,9 +31,9 @@ class MessagingManager {
 
     this.videoController.livePlayer.mediaSource.addEventListener('sourceopen', () => {
       const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
+      //because the ffmpeg 'reset_timestamps' flag is set, the default sourceBuffer.mode of segments will properly order the chunks
+      //AND the timestamps of viewer will correctly be set as "time since the stream started", the segments mode makes the current time "time since viewer joined"
       this.videoController.livePlayer.sourceBuffer = this.videoController.livePlayer.mediaSource.addSourceBuffer(mimeCodec);
-      // using sequence allows clients joining an existing stream to skip ahead to the latest received packets, not waiting for a packet to fill a gap
-      this.videoController.livePlayer.sourceBuffer.mode = 'sequence';
 
       this.videoController.livePlayer.sourceBuffer.onupdateend = () => {
         const messageData = new Uint8Array(this.videoBuffer).buffer;
@@ -69,7 +69,6 @@ class MessagingManager {
     }
 
     if(message.flag == 'liveStreamData') {
-      console.log('live data')
       this.videoBuffer = this.videoBuffer.concat(message.data);
 
       return;

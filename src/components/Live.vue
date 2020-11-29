@@ -163,7 +163,7 @@ class Live {
     this.livePlayer = document.querySelector('video');
     this.livePlayer.mediaSource = new MediaSource();
     this.livePlayer.src = URL.createObjectURL(this.livePlayer.mediaSource);
-    
+
     window.livePlayer = this.livePlayer;
   }
 
@@ -293,7 +293,8 @@ class Live {
 
     this.video.pause();
     this.livePlayer.play();
-    if(this.livePlayer.buffered.length) this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
+    //when the player first starts is possible the user presses play before the player seekable ranges fully loaded
+    if(this.livePlayer.seekable.length) this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.isLiveVideo = true;
   }
 

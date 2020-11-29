@@ -1,3 +1,9 @@
+# 2.5.2
+
+### Bug Fixes
+* fixed error with new members joining live stream
+* researched and fixed timestamps for live player
+
 # 2.5.1
 
 ### Bug Fixes
