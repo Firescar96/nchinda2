@@ -8,7 +8,6 @@ class WebsocketClient {
 
     const route = new URL(window.location.href);
     route.protocol = route.protocol.replace('http', 'ws');
-    route.hostname = `direct.${route.hostname}`;
     if(route.port) route.port = 8080;
 
     this.connection = engineio(route.href, { transports: ['websocket'] });

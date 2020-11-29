@@ -22,8 +22,8 @@
 
     <div v-if="selectedPost" id="selectedPost" ref="selectedPost">
       <div id="postContent" ref="postContent">
-        <overlay-scrollbars id="messageBody">
-          <div ref="generatedText" v-html="selectedPost.fullText" />
+        <overlay-scrollbars id="messageBody" class="os-host-flexbox">
+          <div v-html="selectedPost.fullText" />
         </overlay-scrollbars>
         <div class="divider" />
         <div id="shippingBody">
@@ -81,6 +81,7 @@ class Bubbles {
     await loadPosts('bubbles', NUM_POSTS, this);
 
     const player = videojs(this.$refs.backgroundVid);
+    console.log('this.$route.query.video', this.$route)
     if(this.$route.query.video) {
       player.src({
         src: `/videos/${this.$route.query.video}/master.m3u8`,
@@ -88,6 +89,7 @@ class Bubbles {
         overrideNative: true,
       });
       this.focusVideo = true;
+      console.log('find video load')
     } else {
       player.src(
         {
@@ -100,6 +102,7 @@ class Bubbles {
   }
 
   selectPost(index) {
+    console.log('selectPost', index)
     if(index) {
       this.selectedPost = this.posts[this.posts.length - index];
     } else {

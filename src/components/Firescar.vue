@@ -21,7 +21,7 @@
       <overlay-scrollbars id="postContent" ref="postContent" class="os-theme-light">
         <span class="termUser">firecar96@comsat1</span>
         <span class="termDir">~/public</span> $ cat posts/{{ selectedPost.index }}.md
-        <div ref="generatedText" v-html="selectedPost.fullText" />
+        <div v-html="selectedPost.fullText" />
         <br>
         <span class="termUser">firecar96@comsat1</span>
         <span class="termDir">~/public</span> $

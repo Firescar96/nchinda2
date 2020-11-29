@@ -31,7 +31,9 @@ const loadPosts = async (persona, numposts, vueComponent) => {
 
   posts.forEach((post, index) => { post.index = posts.length - index; });
   vueComponent.posts = posts;
-  if(!Number.isNaN(vueComponent.$route.query.post)) vueComponent.selectPost(vueComponent.$route.query.post);
+  if(!Number.isNaN(parseInt(vueComponent.$route.query.post, 10))) {
+    vueComponent.selectPost(vueComponent.$route.query.post);
+  }
 };
 
 function openFullscreen(elem) {
