@@ -41,7 +41,8 @@
       </button>
     </div>
 
-    <div id="chatSideBar">
+    <div id="chatSideBar" :class="{minimized: chatMinimized}">
+      <i class="material-icons" @click="toggleSideBar" id="minimizeButton">keyboard_arrow_right</i>
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
@@ -58,48 +59,53 @@
         <input id="nameSelection" v-model="myName">
       </div>
       <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light os-host-flexbox">
-        <div v-for="(message, index) in messages" :key="index" class="message" :class="{meta: message.isMeta, myMessage: message.myMessage}">
-          <p v-if="!message.myMessage && !message.isMeta">
-            {{ message.name }}:
-          </p>
-          <p class="indentMessage">
-            {{ message.text }}
-          </p>
-          <p v-if="message.action == 'peerDisconnect'" class="indentMessage">
-            {{ message.name }} disconnected <a @click="jumpToTime(message.time)">Jump to Time</a>
-          </p>
-          <p v-if="message.action == 'syncAction'" class="indentMessage">
-            {{ message.name }} pressed the <span class="capitalize">{{ toHumanReadable(message.flag) }}</span> button
-          </p>
-          <p v-if="message.action == 'peerConnect'" class="indentMessage">
-            {{ message.name }} connected
-          </p>
-          <div v-if="message.action == 'clientStatus'" class="indentMessage">
-            <div class="clientStatusHeader clientStatusGroup">
-              <div class="clientStatusName">
-                Name
+        <div v-for="(message, index) in messages" :key="index" class="messageContainer" :class="{meta: message.isMeta, myMessage: message.myMessage, new: message.isNew}">
+          <div class="message">
+            <p v-if="!message.myMessage && !message.isMeta">
+              {{ message.name }}:
+            </p>
+            <p class="indentMessage">
+              {{ message.text }}
+            </p>
+            <p v-if="message.action == 'peerDisconnect'" class="indentMessage">
+              {{ message.name }} disconnected <a @click="jumpToTime(message.time)">Jump to Time</a>
+            </p>
+            <p v-if="message.action == 'syncAction'" class="indentMessage">
+              {{ message.name }} pressed the <span class="capitalize">{{ toHumanReadable(message.flag) }}</span> button
+            </p>
+            <p v-if="message.action == 'peerConnect'" class="indentMessage">
+              {{ message.name }} connected
+            </p>
+            <div v-if="message.action == 'clientStatus'" class="indentMessage">
+              <div class="clientStatusHeader clientStatusGroup">
+                <div class="clientStatusName">
+                  Name
+                </div>
+                <div class="clientStatusTime">
+                  Time
+                </div>
               </div>
-              <div class="clientStatusTime">
-                Time
-              </div>
-            </div>
-            <div v-for="status in message.status" :key="status.name" class="clientStatusGroup">
-              <div class="clientStatusName">
-                {{ status.name }}
-              </div>
-              <div class="clientStatusTime">
-                {{ Math.round(status.lastFrameTime) }}
+              <div v-for="status in message.status" :key="status.name" class="clientStatusGroup">
+                <div class="clientStatusName">
+                  {{ status.name }}
+                </div>
+                <div class="clientStatusTime">
+                  {{ Math.round(status.lastFrameTime) }}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </overlay-scrollbars>
-      <div v-if="currentlyTyping.length" id="typing-container">
+      <div v-show="currentlyTyping.length" id="typingContainer">
         ...
         <span v-for="name in currentlyTyping">{{name}}</span>
         is typing...
       </div>
-      <input id="chatInput" @input="chatOnTyping" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
+      <div id="chatInput">
+        <i class="material-icons" id="chatBubble">insert_comment</i>
+        <input  @input="chatOnTyping" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
+      </div>
     </div>
   </div>
 </template>
@@ -136,6 +142,7 @@ class Live {
       showUnlivePlayer: false,
       currentlyTyping: [],
       isFullscreen: false,
+      chatMinimized: false,
     };
   }
 
@@ -232,6 +239,7 @@ class Live {
 
   async displayMessage(message, isMyMessage) {
     message.myMessage = isMyMessage;
+    message.isNew = true;
 
     if(message.replace === true && this.messages[this.messages.length - 1].name === message.name) {
       this.messages.splice(this.messages.length - 1, 1);
@@ -242,6 +250,11 @@ class Live {
     }
 
     this.messages.push(message);
+
+    const dismissTime = (message.text?message.text.length:0) * 100 + 3000;
+    setTimeout(() => {
+      message.isNew = false;
+    }, dismissTime);
 
     await this.$nextTick();
     this.$refs.chatMessages.osInstance().scroll('100%');
@@ -318,6 +331,15 @@ class Live {
 
   chatOnTyping() {
     this.messaging.isActiveTyping = !!this.newMessage;
+  }
+
+  toggleSideBar() {
+    this.chatMinimized = !this.chatMinimized;
+    if(this.chatMinimized) {
+      this.$refs.chatMessages.osInstance().options( {overflowBehavior: {x: 'h', y:'h'}, scrollbars: {visibility: 'h'}})
+    } else {
+      this.$refs.chatMessages.osInstance().options( {overflowBehavior: {x: 's', y:'s'}, scrollbars: {visibility: 'a'}})
+    }
   }
 }
 </script>
@@ -527,6 +549,8 @@ class Live {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    width: 100%;
+    transition: all 1s;
 
     &:hover .vjs-big-play-button {
       background-color: rgba(0,0,0,.95);
@@ -543,10 +567,22 @@ class Live {
   }
 
   #chatSideBar {
+    position: relative;
     width: 300px;
+    right: 0;
     display: flex;
     flex-direction: column;
     background: #111;
+    transition: all 1s;
+
+    #minimizeButton {
+      position: absolute;
+      top: 0;
+      left: -25px;
+      border-radius: 50%;
+      background: #444;
+      cursor: pointer;
+    }
 
     #chatTitle {
       color: #f008;
@@ -603,12 +639,14 @@ class Live {
       padding: 0 10px;
       overflow-y: auto;
 
-      .message {
+      .os-content {
+        min-height: 100%;
+      }
+
+      .messageContainer {
         padding: 8px 0;
         overflow-wrap: break-word;
-        width: 100%; // this ensures overflow-wrap applies at the beginning, so during the animation overlayscrollbars can still calculate how far to scroll
-        animation-name: newMessage;
-        animation-duration: 1s;
+        overflow: hidden;
 
         &.meta {
           color: #aaa;
@@ -617,13 +655,24 @@ class Live {
         &.myMessage {
           text-align: right;
           margin-left: 0;
+
+          .indentMessage {
+            margin-left: 0;
+          }
         }
 
         p {
           margin: 5px 0;
         }
 
+        .message {
+          position: relative;
+          animation-name: newMessage;
+          animation-duration: 1s;
+        }
+
         .indentMessage {
+          position: relative;
           margin-left: 20px;
         }
 
@@ -657,23 +706,115 @@ class Live {
             border-bottom: solid 1px #555;
           }
         }
-      }
 
-      @keyframes newMessage {
-        from {margin-left: -300px}
-        to {margin-left: 0}
+        @keyframes newMessage {
+          from {
+            right: -300px;
+          }
+          to {
+            right: 0;
+          }
+        }
       }
     }
 
-    #typing-container {
+    #typingContainer {
       padding-left: 10px;
       color: #999;
     }
 
-    input#chatInput {
-      border-top: solid 2px white;
-      height: 40px;
-      margin: 0 10px;
+    #chatInput {
+      position: relative;
+      display: flex;
+      transition: all .5s .2s;
+      right: 0;
+      margin-left: 0;
+
+      #chatBubble {
+        position: absolute;
+        top: 0;
+        left: -24px;
+        opacity: 0;
+        transition: all 1s;
+      }
+
+      input {
+        border-top: solid 2px white;
+        height: 40px;
+        margin: 0 10px;
+        flex: 1;
+      }
+    }
+
+    &.minimized {
+      height: 100%;
+      background: black;
+      margin-left: -300px;
+      right: -300px;
+
+      #minimizeButton {
+        transform: rotateY(180deg);
+      }
+
+      #chatMessages {
+        right: 300px;
+        position: relative;
+
+
+        .os-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .messageContainer {
+          opacity: 0;
+          margin: 5px auto 5px 0;
+
+          .message {
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: #000d;
+          }
+
+          &.new {
+            opacity: 1;
+            display: block;
+          }
+
+          &.meta {
+            margin-right: 0;
+            padding: 0;
+          }
+
+          &.myMessage {
+            text-align: right;
+            margin-left: auto;
+            margin-right: 0;
+          }
+        }
+      }
+
+      #typingContainer {
+        position: relative;
+        right: 300px;
+      }
+
+      #chatInput {
+        position: relative;
+        align-items: center;
+        margin-bottom: 60px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        &:hover {
+          right: 300px;
+        }
+
+        #chatBubble {
+          opacity: 1;
+        }
+      }
     }
   }
 

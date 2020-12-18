@@ -1,8 +1,7 @@
-# 2.5.2
+# 2.6.0
 
-### Bug Fixes
-* fixed error with new members joining live stream
-* researched and fixed timestamps for live player
+### Features
+* created mimimized version of the chatbox
 
 # 2.5.1
 

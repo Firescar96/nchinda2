@@ -59,7 +59,9 @@ import bubbleImg from '@/../public/images/bubble.png';
 
 const NUM_POSTS = 6;
 export default
-@Component()
+@Component({
+  props: {}
+})
 class Bubbles {
   data() {
     return {

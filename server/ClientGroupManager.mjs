@@ -37,6 +37,7 @@ class ClientGroupManager {
     //and on some flags https://ffmpeg.org/ffmpeg-all.html#rtsp
     //what do the numbers in an avc codec mean https://lists.ffmpeg.org/pipermail/ffmpeg-user/2015-October/028984.html
     //https://stackoverflow.com/questions/48588511/prepare-mp4-videos-for-media-source-extensions-api-using-ffmpeg
+    //a pretty complete list of ffmpeg flags https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
     const mediaSpawnOptions = [
       '-re', //realtime? I heard it's good for livestreams and bad for writing to a file, streaming doesn't seem to work without it, the output is more regular with this flag
       '-i',
