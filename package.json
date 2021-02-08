@@ -14,7 +14,7 @@
     "engine.io": "^4.0.5",
     "engine.io-client": "^4.0.5",
     "express": "^4.17.1",
-    "marked": "^1.2.6",
+    "marked": "^2.0.0",
     "material-icons": "^0.5.1",
     "overlayscrollbars": "^1.13.0",
     "overlayscrollbars-vue": "^0.2.2",
