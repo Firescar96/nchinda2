@@ -57,10 +57,10 @@ import videojs from 'video.js';
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../public/images/bubble.png';
 
-const NUM_POSTS = 6;
+const NUM_POSTS = 7;
 export default
 @Component({
-  props: {}
+  props: {},
 })
 class Bubbles {
   data() {
@@ -90,14 +90,6 @@ class Bubbles {
         overrideNative: true,
       });
       this.focusVideo = true;
-    } else {
-      player.src(
-        {
-          src: 'https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd',
-          //src: '/videos/clouds-5m/stream.mpd',
-          type: 'application/dash+xml',
-        },
-      );
     }
   }
 

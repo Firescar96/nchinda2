@@ -135,7 +135,7 @@ class Live {
       lastSyncedTime: null,
       notJoinedStream: true,
       isLivePaused: false,
-      isLiveVideo: true,
+      isLiveVideo: false,
       liveVolumeLevel: 1,
       showingProgressBar: false,
       showLivePlayer: false,
@@ -251,7 +251,7 @@ class Live {
 
     this.messages.push(message);
 
-    const dismissTime = (message.text?message.text.length:0) * 100 + 3000;
+    const dismissTime = (message.text?message.text.length:0) * 80 + 3000;
     setTimeout(() => {
       message.isNew = false;
     }, dismissTime);

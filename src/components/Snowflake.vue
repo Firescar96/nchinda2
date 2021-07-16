@@ -48,10 +48,10 @@ class Snowflake {
     if(!this.selectedPost) return;
     //wait for the dom to rerender
     await this.$nextTick();
-
+    console.log(document.querySelector('#postContent h1').offsetHeight);
     //calculate how many spacer lines are needed
-    //number of pixels to space from top empirically chosen as 96
-    this.$refs.journalBackground.style.marginTop = `${document.querySelector('#postContent h1').offsetHeight + 22}px`;
+    //number of pixels to space from top empirically chosen as 83
+    this.$refs.journalBackground.style.marginTop = '83px';
     const numSpacers = (this.$refs.journalBackground.getBoundingClientRect().height) / 40 - 1;
     for(let i = 0; i < numSpacers; i++) {
       const div = document.createElement('div');
@@ -145,7 +145,8 @@ class Snowflake {
       min-height: 100vh;
 
       h1 {
-        margin-top: 0;
+        margin: 0;
+        margin-bottom: 33px;
       }
 
       h4, p, li, h3 {

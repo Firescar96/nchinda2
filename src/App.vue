@@ -23,7 +23,7 @@
       </div>
     </nav>
     <router-view class="main" />
-    <link href="https://vjs.zencdn.net/7.6.6/video-js.css" rel="stylesheet" >
+    <link href="https://vjs.zencdn.net/7.6.6/video-js.css" rel="stylesheet">
   </div>
 </template>
 <style src='overlayscrollbars/css/OverlayScrollbars.css'></style>

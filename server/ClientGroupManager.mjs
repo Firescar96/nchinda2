@@ -99,7 +99,7 @@ class ClientGroupManager {
       if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
       this.broadcastMessage(rawdata);
     };
-    this.mediaStream.stdout.on('data', liveStreamCallback);
+    //this.mediaStream.stdout.on('data', liveStreamCallback);
   }
 
   addClient(ws) {

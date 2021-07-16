@@ -10,6 +10,8 @@ module.exports = {
     alias: {
       vue$: 'vue/dist/vue.esm.js',
       '@': resolve('src'),
+      '/images': path.resolve(__dirname, './public/images/'),
+      '/fonts': path.resolve(__dirname, './public/fonts/'),
     },
   },
-};
+}
