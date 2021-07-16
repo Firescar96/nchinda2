@@ -1,5 +1,5 @@
 import WebsocketClient from './WebsocketClient';
-//import WebRTCClient from './WebRTCClient';
+import WebRTCClient from './WebRTCClient';
 import constants from '../constants';
 
 const { SKIP_BACK_SECONDS } = constants;
@@ -13,10 +13,10 @@ class MessagingManager {
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
     this.videoBuffer = [];
     this.isActiveTyping = false;
-    //this.webrtcClient = new WebRTCClient();
-    //this.webrtcClient.client.on('signal', (signal) => {
-    //this.sendMessage({ flag: 'webrtcSignal', signal });
-    //});
+    this.webrtcClient = new WebRTCClient(this.sendMessage.bind(this), this.receiveData.bind(this));
+    this.webrtcClient.client.on('signal', (signal) => {
+      this.sendMessage({ flag: 'webrtcSignal', signal });
+    });
 
     //save the eventhandlers so they can be en/disabled dynamically
     this.eventHandlers = {
@@ -27,7 +27,6 @@ class MessagingManager {
       seekBack: () => this.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
       seekToLive: () => this.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
     };
-
 
     this.videoController.livePlayer.mediaSource.addEventListener('sourceopen', () => {
       const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
@@ -40,8 +39,8 @@ class MessagingManager {
         this.videoBuffer = [];
         this.videoController.livePlayer.sourceBuffer.appendBuffer(messageData);
       };
-      // get the first onupdateend call going
-      this.videoController.livePlayer.sourceBuffer.appendBuffer(new ArrayBuffer())
+      //get the first onupdateend call going
+      this.videoController.livePlayer.sourceBuffer.appendBuffer(new ArrayBuffer());
     });
   }
 
@@ -75,10 +74,10 @@ class MessagingManager {
     }
 
     //Coming Soon
-    //if(message.flag == 'webrtcSignal') {
-    //this.webrtcClient.client.signal(message.signal);
-    //return;
-    //}
+    if(message.flag == 'webrtcSignal') {
+      this.webrtcClient.client.signal(message.signal);
+      return;
+    }
 
     if(message.flag === 'syncRequest' && this.streamJoined) {
       const isPaused = this.videoController.isLiveVideo ? this.videoController.livePlayer.paused : this.videoController.video.paused();

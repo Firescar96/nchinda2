@@ -8,8 +8,6 @@ const {
 class WebrtcClient {
   constructor() {
     this.client = new SimplePeer({
-      initiator: true,
-      trickle: false,
       wrtc,
     });
 

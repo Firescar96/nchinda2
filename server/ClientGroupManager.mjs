@@ -1,5 +1,4 @@
 import childProcess from 'child_process';
-import ws from 'ws';
 import { WSClient } from './WSClient.mjs';
 import WebrtcClient from './WebrtcClient.mjs';
 
@@ -7,29 +6,13 @@ class ClientGroupManager {
   constructor(name) {
     this.name = name;
     this.clients = {};
+    this.rtcClients = {};
     this.isLiveVideo = true;
     this.clientsWaitingToSync = []; //clients who have requested a timecheck
     this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
-    this.liveVideoMoov = []; // save the first output from ffmpeg, for initializing new clients
+    this.liveVideoMoov = []; //save the first output from ffmpeg, for initializing new clients
 
     this.initializeLiveTranscoder();
-    this.initializeWebRTC();
-  }
-
-  initializeWebRTC() {
-    this.webrtcClient = new WebrtcClient();
-
-    //TODO this signal should only be sent to the client who requested it
-    //maybe it can be figured out via the signal? Or maybe every client needs their
-    //own webrtc client like websockets
-    //this.webrtcClient.client.on('signal', (signal) => {
-    //const rawdata = JSON.stringify({
-    //flag: 'webrtcSignal',
-    //signal,
-    //});
-    //// ws.send(JSON.stringify(data));
-    //this.broadcastMessage(rawdata);
-    //});
   }
 
   initializeLiveTranscoder(name) {
@@ -52,20 +35,20 @@ class ClientGroupManager {
       '10',
       '-strict',
       'experimental',
-      // -tune zerolatency left out, doesn't seem to do anything
+      //-tune zerolatency left out, doesn't seem to do anything
       '-f',
       'mp4', //use the mp4 container
       //https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg none of these seem to have an affect
       //none of these options that are supposed to speedup seem to do anything
-      // -flags cgop+low_delay non of these flags work
+      //-flags cgop+low_delay non of these flags work
       '-x264opts',
-      'keyint=2',//lower keyint than this significantly hurts quality
+      'keyint=2', //lower keyint than this significantly hurts quality
       '-preset',
       'ultrafast',
       '-pix_fmt',
       'yuv420p', //required for browsers to be able to play this
       '-reset_timestamps',
-      '1', // this syncs up the timestamps when fragments are received in the browser
+      '1', //this syncs up the timestamps when fragments are received in the browser
       '-movflags',
       'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof+disable_chpl', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
       '-profile:v',
@@ -97,16 +80,20 @@ class ClientGroupManager {
       });
       //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1 or gop+2?
       if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
-      this.broadcastMessage(rawdata);
+      this.broadcastRTCMessage(rawdata);
     };
-    //this.mediaStream.stdout.on('data', liveStreamCallback);
+    this.mediaStream.stdout.on('data', liveStreamCallback);
+
+    //setInterval(() => {
+    //liveStreamCallback({ toJSON() { return { data: 'my data' }; } });
+    //}, 500);
   }
 
   addClient(ws) {
     //ws shouldn't be in the global scope of arguments, but must be scoped to this function
     this.clients[ws.id] = new WSClient(ws);
 
-    if(this.liveVideoMoov) this.liveVideoMoov.forEach(x => ws.send(x));
+    if(this.liveVideoMoov) this.liveVideoMoov.forEach((x) => ws.send(x));
 
     ws.on('close', () => {
       Object.values(this.clients).forEach((client) => {
@@ -121,7 +108,7 @@ class ClientGroupManager {
       if(!this.clients[ws.id]) return;
       switch(data.flag) {
         case 'webrtcSignal':
-          this.webrtcClient.client.signal(data.signal);
+          this.rtcClients[ws.id].client.signal(data.signal);
           break;
         case 'syncResponse': {
           this.clients[ws.id].lastFrameTime = data.lastFrameTime;
@@ -188,7 +175,7 @@ class ClientGroupManager {
         }
         case 'ping': {
           this.clients[ws.id].update(data);
-          const currentlyTyping = Object.values(this.clients).filter(c => c.isActiveTyping).map(c => c.name);
+          const currentlyTyping = Object.values(this.clients).filter((c) => c.isActiveTyping).map((c) => c.name);
 
           ws.send(JSON.stringify({ flag: 'pong', currentlyTyping }));
           break;
@@ -197,6 +184,17 @@ class ClientGroupManager {
           //default is to echo the data to everyone
           this.broadcastMessage(rawdata, ws);
       }
+    });
+
+    const rtcClient = new WebrtcClient();
+    this.rtcClients[ws.id] = rtcClient;
+
+    rtcClient.client.on('signal', (signal) => {
+      const rawdata = JSON.stringify({
+        flag: 'webrtcSignal',
+        signal,
+      });
+      ws.send(rawdata);
     });
   }
 
@@ -207,8 +205,18 @@ class ClientGroupManager {
     });
   }
 
+  broadcastRTCMessage(rawdata, ws) {
+    Object.values(this.rtcClients).forEach((client) => {
+      if(ws && client.id == ws.id) return;
+      if(!client.client.connected) return;
+      client.client.send(rawdata);
+    });
+  }
+
   destroy() {
-    this.webrtcClient.client.destroy();
+    Object.values(this.rtcClients).forEach((client) => {
+      client.client.destroy();
+    });
     //this.videoStream.kill('SIGINT');
     //this.audioStream.kill('SIGINT');
     this.mediaStream.kill();

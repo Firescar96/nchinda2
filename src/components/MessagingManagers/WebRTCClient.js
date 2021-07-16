@@ -3,23 +3,19 @@
  * The messaging manager creates an instance and connect but doesn't do anything with it
  */
 
-import SimplePeer from 'simple-peer';
-
 class WebRTCClient {
-  constructor() {
+  constructor(sendMessage, receiveData) {
     this.client = new SimplePeer({
+      initiator: true,
       trickle: false,
     });
     this.stream = null;
 
     this.client.on('error', (err) => console.log('error', err));
 
-    this.client.on('data', (data) => {
-      console.log(`data: ${data}`);
-    });
+    this.client.on('data', receiveData);
 
     this.client.on('stream', (stream) => {
-      console.log('stream found', stream);
       this.stream = stream;
     });
 
