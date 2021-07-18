@@ -190,6 +190,7 @@ class ClientGroupManager {
     this.rtcClients[ws.id] = rtcClient;
 
     rtcClient.client.on('signal', (signal) => {
+      console.log('signal', signal)
       const rawdata = JSON.stringify({
         flag: 'webrtcSignal',
         signal,

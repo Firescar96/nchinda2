@@ -9,6 +9,7 @@ class WebrtcClient {
   constructor() {
     this.client = new SimplePeer({
       wrtc,
+      initiator: true,
     });
 
     this.client.on('data', (data) => {

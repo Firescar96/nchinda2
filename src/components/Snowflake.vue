@@ -48,7 +48,7 @@ class Snowflake {
     if(!this.selectedPost) return;
     //wait for the dom to rerender
     await this.$nextTick();
-    console.log(document.querySelector('#postContent h1').offsetHeight);
+
     //calculate how many spacer lines are needed
     //number of pixels to space from top empirically chosen as 83
     this.$refs.journalBackground.style.marginTop = '83px';

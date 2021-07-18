@@ -1,4 +1,8 @@
-# 2.6.0
+# 2.7.0 - Chain Reaction Polymerization
+
+### Features
+* replaced nginx rtmp server with OvenMediaEngine
+* replaced broken websocket based livestream with WebRTC via OvenMediaEngine
 
 ### Features
 * created mimimized version of the chatbox

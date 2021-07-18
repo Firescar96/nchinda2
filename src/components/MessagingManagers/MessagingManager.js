@@ -14,9 +14,9 @@ class MessagingManager {
     this.videoBuffer = [];
     this.isActiveTyping = false;
     this.webrtcClient = new WebRTCClient(this.sendMessage.bind(this), this.receiveData.bind(this));
-    this.webrtcClient.client.on('signal', (signal) => {
-      this.sendMessage({ flag: 'webrtcSignal', signal });
-    });
+    this.webrtcClient.peerConnection.ontrack = (event) => {
+      this.videoController.livePlayer.srcObject.addTrack(event.track);
+    };
 
     //save the eventhandlers so they can be en/disabled dynamically
     this.eventHandlers = {
@@ -27,21 +27,6 @@ class MessagingManager {
       seekBack: () => this.sendMessage({ flag: 'seekBack', action: 'syncAction' }),
       seekToLive: () => this.sendMessage({ flag: 'seekToLive', action: 'syncAction' }),
     };
-
-    this.videoController.livePlayer.mediaSource.addEventListener('sourceopen', () => {
-      const mimeCodec = 'video/mp4; codecs="avc1.42c028,mp4a.40.2"';
-      //because the ffmpeg 'reset_timestamps' flag is set, the default sourceBuffer.mode of segments will properly order the chunks
-      //AND the timestamps of viewer will correctly be set as "time since the stream started", the segments mode makes the current time "time since viewer joined"
-      this.videoController.livePlayer.sourceBuffer = this.videoController.livePlayer.mediaSource.addSourceBuffer(mimeCodec);
-
-      this.videoController.livePlayer.sourceBuffer.onupdateend = () => {
-        const messageData = new Uint8Array(this.videoBuffer).buffer;
-        this.videoBuffer = [];
-        this.videoController.livePlayer.sourceBuffer.appendBuffer(messageData);
-      };
-      //get the first onupdateend call going
-      this.videoController.livePlayer.sourceBuffer.appendBuffer(new ArrayBuffer());
-    });
   }
 
   sendMessage(message) {
@@ -75,7 +60,7 @@ class MessagingManager {
 
     //Coming Soon
     if(message.flag == 'webrtcSignal') {
-      this.webrtcClient.client.signal(message.signal);
+      //this.webrtcClient.client.signal(message.signal);
       return;
     }
 

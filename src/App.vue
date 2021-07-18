@@ -26,15 +26,6 @@
     <link href="https://vjs.zencdn.net/7.6.6/video-js.css" rel="stylesheet">
   </div>
 </template>
-<script>
-export default {
-  mounted() {
-    const simplePeer = document.createElement('script');
-    simplePeer.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.0/simplepeer.min.js');
-    document.head.appendChild(simplePeer);
-  },
-};
-</script>
 <style src='overlayscrollbars/css/OverlayScrollbars.css'></style>
 <style src='videojs-seek-buttons/dist/videojs-seek-buttons.css'></style>
 <style lang="scss" src='material-icons/iconfont/material-icons.scss'></style>

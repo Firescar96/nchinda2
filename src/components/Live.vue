@@ -11,14 +11,14 @@
         </button>
         <div class="vjs-volume-panel vjs-control vjs-volume-panel-horizontal vjs-hover">
           <div class="vjs-volume-control vjs-control vjs-volume-horizontal">
-            <input v-model="liveVolumeLevel" type="range" min="0" max="1" step=".01" @change="liveUpdateVolume" class="slider">
+            <input v-model="liveVolumeLevel" type="range" min="0" max="1" step=".01" class="slider" @change="liveUpdateVolume">
           </div>
         </div>
         <button class="vjs-seek-to-live-control vjs-control vjs-at-live-edge" type="button" title="Seek to live, currently playing live" @click="liveUnlive">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-seek-to-live-text" aria-hidden="true">UNLIVE</span>
         </button>
-        <button @click="goFullScreen" class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false">
+        <button class="vjs-fullscreen-control vjs-control vjs-button" type="button" title="Fullscreen" aria-disabled="false" @click="goFullScreen">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
           <span class="vjs-control-text" aria-live="polite">Fullscreen</span>
         </button>
@@ -30,7 +30,7 @@
         ref="liveVid"
         class="video-js vjs-default-skin"
       >
-        <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
+        <source :src="'https://nchinda2.africa:3275/live/'+$route.params.stream+'/playlist.m3u8'" type="application/x-mpegURL">
       </video>
     </div>
 
@@ -42,7 +42,7 @@
     </div>
 
     <div id="chatSideBar" :class="{minimized: chatMinimized}">
-      <i class="material-icons" @click="toggleSideBar" id="minimizeButton">keyboard_arrow_right</i>
+      <i id="minimizeButton" class="material-icons" @click="toggleSideBar">keyboard_arrow_right</i>
       <h3 id="chatTitle">
         conTROLLbox
       </h3>
@@ -99,12 +99,12 @@
       </overlay-scrollbars>
       <div v-show="currentlyTyping.length" id="typingContainer">
         ...
-        <span v-for="name in currentlyTyping">{{name}}</span>
+        <span v-for="name in currentlyTyping">{{ name }}</span>
         is typing...
       </div>
       <div id="chatInput">
-        <i class="material-icons" id="chatBubble">insert_comment</i>
-        <input  @input="chatOnTyping" v-model="newMessage" placeholder="...write a message and press enter" @keyup.enter="sendChat">
+        <i id="chatBubble" class="material-icons">insert_comment</i>
+        <input v-model="newMessage" placeholder="...write a message and press enter" @input="chatOnTyping" @keyup.enter="sendChat">
       </div>
     </div>
   </div>
@@ -168,8 +168,7 @@ class Live {
 
   setupFuturisticPlayer() {
     this.livePlayer = document.querySelector('video');
-    this.livePlayer.mediaSource = new MediaSource();
-    this.livePlayer.src = URL.createObjectURL(this.livePlayer.mediaSource);
+    this.livePlayer.srcObject = new MediaStream();
 
     window.livePlayer = this.livePlayer;
   }
@@ -251,7 +250,7 @@ class Live {
 
     this.messages.push(message);
 
-    const dismissTime = (message.text?message.text.length:0) * 80 + 3000;
+    const dismissTime = (message.text ? message.text.length : 0) * 80 + 3000;
     setTimeout(() => {
       message.isNew = false;
     }, dismissTime);
@@ -279,7 +278,6 @@ class Live {
   async livePlay() {
     await this.livePlayer.play();
     //on play resynchronize back to the beginning
-    this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.messaging.sendMessage({ flag: 'play', isPaused: false, action: 'syncAction' });
     this.isLivePaused = false;
   }
@@ -336,9 +334,9 @@ class Live {
   toggleSideBar() {
     this.chatMinimized = !this.chatMinimized;
     if(this.chatMinimized) {
-      this.$refs.chatMessages.osInstance().options( {overflowBehavior: {x: 'h', y:'h'}, scrollbars: {visibility: 'h'}})
+      this.$refs.chatMessages.osInstance().options({ overflowBehavior: { x: 'h', y: 'h' }, scrollbars: { visibility: 'h' } });
     } else {
-      this.$refs.chatMessages.osInstance().options( {overflowBehavior: {x: 's', y:'s'}, scrollbars: {visibility: 'a'}})
+      this.$refs.chatMessages.osInstance().options({ overflowBehavior: { x: 's', y: 's' }, scrollbars: { visibility: 'a' } });
     }
   }
 }
@@ -359,8 +357,6 @@ class Live {
   #liveVid {
     display: none;
   }
-
-  
 
   /*
     Player Skin Designer for Video.js
@@ -759,7 +755,6 @@ class Live {
       #chatMessages {
         right: 300px;
         position: relative;
-
 
         .os-content {
           display: flex;

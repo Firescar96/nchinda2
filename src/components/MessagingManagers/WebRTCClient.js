@@ -5,21 +5,14 @@
 
 class WebRTCClient {
   constructor(sendMessage, receiveData) {
-    this.client = new SimplePeer({
-      initiator: true,
-      trickle: false,
-    });
-    this.stream = null;
+    this.signalWS = new WebSocket('wss://nchinda2.com:3334/live/lobby');
+    window.signalWS = this.signalWS;
 
-    this.client.on('error', (err) => console.log('error', err));
+    this.signalWS.onmessage = this.gotMessageFromServer.bind(this);
 
-    this.client.on('data', receiveData);
-
-    this.client.on('stream', (stream) => {
-      this.stream = stream;
-    });
-
-    this.client.on('error', (err) => { console.log('rtc error', err); });
+    this.signalWS.onopen = () => {
+      this.signalWS.send(JSON.stringify({ command: 'request_offer' }));
+    };
 
     //navigator.mediaDevices.getUserMedia({
     //video: true,
@@ -29,6 +22,53 @@ class WebRTCClient {
     //this.client.addStream(stream);
     //});
     //video.tech().el().srcObject = webrtcClient.stream
+
+    this.peerConnection = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:stun.l.google.com:19302' },
+      ],
+    }, null);
+
+    window.peerConnection = this.peerConnection;
+    this.peerConnection.onicecandidate = this.gotIceCandidate.bind(this);
+  }
+
+  async gotMessageFromServer(message) {
+    const signal = JSON.parse(message.data);
+
+    switch(signal.command) {
+      case 'offer': {
+        this.uuid = signal.id;
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
+        signal.candidates.forEach(async (candidate) => {
+          await this.peerConnection.addIceCandidate(candidate);
+        });
+
+        const answer = await this.peerConnection.createAnswer();
+        await this.peerConnection.setLocalDescription(answer);
+        this.signalWS.send(JSON.stringify({
+          command: 'answer',
+          id: this.uuid,
+          sdp: answer,
+        }));
+
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  gotIceCandidate(event) {
+    if(event.candidate !== null) {
+      this.signalWS.send(JSON.stringify({
+        command: 'candidate',
+        id: this.uuid,
+        candidates: [event.candidate],
+      }));
+    }
   }
 }
 
