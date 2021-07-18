@@ -21,10 +21,11 @@ class ClientGroupManager {
     //what do the numbers in an avc codec mean https://lists.ffmpeg.org/pipermail/ffmpeg-user/2015-October/028984.html
     //https://stackoverflow.com/questions/48588511/prepare-mp4-videos-for-media-source-extensions-api-using-ffmpeg
     //a pretty complete list of ffmpeg flags https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
+    //copies the data from the rtmp live stream over to nginx for a playlist
     const mediaSpawnOptions = [
       '-re', //realtime? I heard it's good for livestreams and bad for writing to a file, streaming doesn't seem to work without it, the output is more regular with this flag
       '-i',
-      `rtmp://nchinda2.com/live/${this.name}`,
+      `https://nchinda2.africa:3275/live/${this.name}/playlist.m3u8`,
       '-reconnect',
       '1',
       '-reconnect_at_eof',
@@ -35,38 +36,16 @@ class ClientGroupManager {
       '10',
       '-strict',
       'experimental',
-      //-tune zerolatency left out, doesn't seem to do anything
+      '-vcodec',
+      'copy',
+      '-acodec',
+      'copy',
       '-f',
-      'mp4', //use the mp4 container
-      //https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg none of these seem to have an affect
-      //none of these options that are supposed to speedup seem to do anything
-      //-flags cgop+low_delay non of these flags work
-      '-x264opts',
-      'keyint=2', //lower keyint than this significantly hurts quality
-      '-preset',
-      'ultrafast',
-      '-pix_fmt',
-      'yuv420p', //required for browsers to be able to play this
-      '-reset_timestamps',
-      '1', //this syncs up the timestamps when fragments are received in the browser
-      '-movflags',
-      'frag_keyframe+empty_moov+omit_tfhd_offset+default_base_moof+disable_chpl', //empty_moov empirically seems to help make sure only the first two blocks of data from ffmpeg are required for initialization
-      '-profile:v',
-      'main', //changes the codec
-      '-level:v',
-      '3.2', //changes the codec
-      //it seems like after the reset_timestamps the buffer gets filled to fast if this isn't kept the same
-      //'-g', //change Group of Picture size, default of 12 is too long -> image stuttering in live video, and long start time latency
-      //'12', //lower number changes quality too much, and increases the amount of work the encoder/decoder have to do
-      '-b:a',
-      '128k', //random internet sources say don't go above this
-      '-codec:v',
-      'h264',
-      '-codec:a',
-      'aac',
-      '-',
+      'flv',
+      `rtmp://nchinda2.africa:2935/live/${this.name}`,
     ];
 
+    console.log(mediaSpawnOptions.join(' '));
     this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
       detached: false,
       //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
@@ -82,7 +61,7 @@ class ClientGroupManager {
       if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
       this.broadcastRTCMessage(rawdata);
     };
-    this.mediaStream.stdout.on('data', liveStreamCallback);
+    this.mediaStream.stdout.on('data', console.log);
 
     //setInterval(() => {
     //liveStreamCallback({ toJSON() { return { data: 'my data' }; } });
@@ -190,7 +169,6 @@ class ClientGroupManager {
     this.rtcClients[ws.id] = rtcClient;
 
     rtcClient.client.on('signal', (signal) => {
-      console.log('signal', signal)
       const rawdata = JSON.stringify({
         flag: 'webrtcSignal',
         signal,

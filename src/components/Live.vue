@@ -30,7 +30,8 @@
         ref="liveVid"
         class="video-js vjs-default-skin"
       >
-        <source :src="'https://nchinda2.africa:3275/live/'+$route.params.stream+'/playlist.m3u8'" type="application/x-mpegURL">
+        <!-- <source :src="'https://nchinda2.africa:3275/live/'+$route.params.stream+'/playlist.m3u8'" type="application/x-mpegURL"> -->
+        <source :src="'https://nchinda2.africa:8395/hls/'+$route.params.stream+'.m3u8'" type="application/x-mpegURL">
       </video>
     </div>
 

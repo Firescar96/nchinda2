@@ -1,7 +1,7 @@
 # 2.7.0 - Chain Reaction Polymerization
 
 ### Features
-* replaced nginx rtmp server with OvenMediaEngine
+* added proxy to nginx rtmp stream with ovenmediaengine
 * replaced broken websocket based livestream with WebRTC via OvenMediaEngine
 
 ### Features

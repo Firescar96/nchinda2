@@ -33,16 +33,6 @@
 		</Providers>
 
 		<Publishers>
-			<HLS>
-				<Port>${env:OME_HLS_STREAM_PORT:8090}</Port>
-				<!-- If you want to use TLS, specify the TLS port -->
-				<!-- <TLSPort>8443</TLSPort> -->
-			</HLS>
-			<DASH>
-				<Port>${env:OME_DASH_STREAM_PORT:8090}</Port>
-				<!-- If you want to use TLS, specify the TLS port -->
-				<!-- <TLSPort>8443</TLSPort> -->
-			</DASH>
 			<WebRTC>
 				<Signalling>
 					<Port>${env:OME_SIGNALLING_PORT:3334}</Port>
@@ -106,26 +96,6 @@
 
 			<!-- Settings for ProxyPass (It can specify origin for each path) -->
 			<Origins>
-				<!--
-					<Origin>
-					<Location>/app/stream</Location>
-					<Pass>
-						<Scheme>ovt</Scheme>
-						<Urls>
-							<Url>origin.com:9000/app/stream_720p</Url>
-						</Urls>
-					</Pass>
-				</Origin>
-				<Origin>
-					<Location>/app/</Location>
-					<Pass>
-						<Scheme>ovt</Scheme>
-						<Urls>
-							<Url>origin.com:9000/app/</Url>
-						</Urls>
-					</Pass>
-				</Origin>
-				-->
 				<Origin>
 					<Location>/</Location>
 					<Pass>

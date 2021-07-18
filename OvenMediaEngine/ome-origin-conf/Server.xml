@@ -17,14 +17,14 @@
 	<!-- Settings for the ports to bind -->
 	<Bind>
 		<!-- Enable this configuration if you want to use API Server -->
-		<!--
+		
 		<Managers>
 			<API>
 				<Port>${env:OME_API_PORT:48081}</Port>
 				<WorkerCount>1</WorkerCount>
 			</API>
 		</Managers>
-		-->
+		
 		<Providers>
 			<RTMP>
 				<Port>${env:OME_RTMP_PROV_PORT:1935}</Port>
@@ -47,20 +47,15 @@
 
 		<Publishers>
 			<!-- The OVT is protocol for ORIGIN-EDGE -->
-			<OVT>
+			<!-- <OVT>
 				<Port>${env:OME_ORIGIN_PORT:9000}</Port>
-			</OVT>
+			</OVT> -->
 			<HLS>
 				<!-- 3274 is DASH as a number -->
 				<Port>${env:OME_HLS_STREAM_PORT:3274}</Port>
 				<!-- If you want to use TLS, specify the TLS port -->
 				<TLSPort>3275</TLSPort>
 			</HLS>
-			<DASH>
-				<Port>${env:OME_DASH_STREAM_PORT:3274}</Port>
-				<!-- If you want to use TLS, specify the TLS port -->
-				<TLSPort>3275</TLSPort>
-			</DASH>
 			<WebRTC>
 				<Signalling>
 					<Port>${env:OME_SIGNALLING_PORT:3333}</Port>
@@ -151,19 +146,41 @@
 					<Publishers>
 						<SessionLoadBalancingThreadCount>8</SessionLoadBalancingThreadCount>
 						<!-- <OVT /> -->
-						<WebRTC>
-							<Timeout>30000</Timeout>
-						</WebRTC>
 						<HLS>
-							<SegmentDuration>2</SegmentDuration>
-							<SegmentCount>3</SegmentCount>
+							<SegmentDuration>1</SegmentDuration>
+							<SegmentCount>2</SegmentCount>
 							<CrossDomains>
 								<Url>*</Url>
 							</CrossDomains>
 						</HLS>
+						<WebRTC>
+							<Timeout>30000</Timeout>
+						</WebRTC>
 					</Publishers>
 				</Application>
 			</Applications>
 		</VirtualHost>
 	</VirtualHosts>
+
+	<Managers>
+		<Host>
+				<Names>
+					<!-- Host names -->
+						<Name>nchinda2.com</Name>
+						<Name>nchinda.africa</Name>
+					
+					<Name>*</Name>
+				</Names>
+				
+				<TLS>
+					<CertPath>/root/certificates/live/nchinda2.com/cert.pem</CertPath>
+					<KeyPath>/root/certificates/live/nchinda2.com/privkey.pem</KeyPath>
+					<ChainCertPath>/root/certificates/live/nchinda2.com/fullchain.pem</ChainCertPath>
+				</TLS>
+		</Host>
+		<API>
+			<!--TODO: Insecure but I won't care about this til nchindacast has more users than just me -->
+			<AccessToken>ome-access-token</AccessToken>
+		</API>
+	</Managers>
 </Server>
