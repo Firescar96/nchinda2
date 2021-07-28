@@ -1,4 +1,6 @@
 import childProcess from 'child_process';
+import path from 'path';
+import fs from 'fs';
 import { WSClient } from './WSClient.mjs';
 import WebrtcClient from './WebrtcClient.mjs';
 
@@ -16,6 +18,11 @@ class ClientGroupManager {
   }
 
   initializeLiveTranscoder(name) {
+    if(process.env.NODE_ENV == 'production') {
+      const source = path.resolve(process.cwd(), 'server/base.m3u8');
+      fs.copyFileSync(source, `/mnt/aux1/nchinda2/hls/${this.name}.m3u8`);
+    }
+
     //helpful documentation on ffmpeg streaming https://trac.ffmpeg.org/wiki/StreamingGuide
     //and on some flags https://ffmpeg.org/ffmpeg-all.html#rtsp
     //what do the numbers in an avc codec mean https://lists.ffmpeg.org/pipermail/ffmpeg-user/2015-October/028984.html
@@ -45,27 +52,11 @@ class ClientGroupManager {
       `rtmp://nchinda2.africa:2935/live/${this.name}`,
     ];
 
-    console.log(mediaSpawnOptions.join(' '));
     this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
       detached: false,
       //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-
-    const liveStreamCallback = (data) => {
-      const rawdata = JSON.stringify({
-        flag: 'liveStreamData',
-        data: data.toJSON().data,
-      });
-      //the required number of init segments needed empirically seems to be related to the GoP, like maybe gop+1 or gop+2?
-      if(this.liveVideoMoov.length < 2) this.liveVideoMoov.push(rawdata);
-      this.broadcastRTCMessage(rawdata);
-    };
-    this.mediaStream.stdout.on('data', console.log);
-
-    //setInterval(() => {
-    //liveStreamCallback({ toJSON() { return { data: 'my data' }; } });
-    //}, 500);
   }
 
   addClient(ws) {

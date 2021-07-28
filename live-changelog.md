@@ -1,11 +1,18 @@
+# 2.7.1
+
+### Bug Fixes
+* improve the first time connection for new streams
+
 # 2.7.0 - Chain Reaction Polymerization
 
 ### Features
-* added proxy to nginx rtmp stream with ovenmediaengine
-* replaced broken websocket based livestream with WebRTC via OvenMediaEngine
+* added proxy to nginx rtmp stream with OvenMediaEngine
+* replaced broken websocket based livestream with functional WebRTC version via OvenMediaEngine
 
-### Features
-* created mimimized version of the chatbox
+### Errata
+* upgrade to node v16
+* upgrade all dependencies
+* put in foundation for audio enabled chat during streams
 
 # 2.5.1
 

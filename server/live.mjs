@@ -26,11 +26,14 @@ function onConnection(socket) {
   });
 
   socket.on('close', () => {
-    // if this is the last client delete all history of this room
-    if(Object.keys(streamClients[socket.roomName].clients).length === 1) {
-      streamClients[socket.roomName].destroy();
-      delete streamClients[socket.roomName];
-    }
+    setTimeout(() => {
+      //if this is the last client delete all history of this room
+      if(Object.keys(streamClients[socket.roomName].clients).length === 1) {
+        streamClients[socket.roomName].destroy();
+        delete streamClients[socket.roomName];
+      }
+    },
+    10000);
   });
 }
 
