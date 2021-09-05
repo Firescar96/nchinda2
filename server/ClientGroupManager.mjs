@@ -2,17 +2,14 @@ import childProcess from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { WSClient } from './WSClient.mjs';
-import WebrtcClient from './WebrtcClient.mjs';
 
 class ClientGroupManager {
   constructor(name) {
     this.name = name;
     this.clients = {};
-    this.rtcClients = {};
     this.isLiveVideo = true;
     this.clientsWaitingToSync = []; //clients who have requested a timecheck
     this.numResponsesRequested = 0; //number of clients we need to respond to get an estimate of the time to sync to
-    this.liveVideoMoov = []; //save the first output from ffmpeg, for initializing new clients
 
     this.initializeLiveTranscoder();
   }
@@ -32,7 +29,7 @@ class ClientGroupManager {
     const mediaSpawnOptions = [
       '-re', //realtime? I heard it's good for livestreams and bad for writing to a file, streaming doesn't seem to work without it, the output is more regular with this flag
       '-i',
-      `https://nchinda2.africa:3275/live/${this.name}/playlist.m3u8`,
+      `http://nchinda2.africa:3274/live/${this.name}/playlist.m3u8`,
       '-reconnect',
       '1',
       '-reconnect_at_eof',
@@ -52,6 +49,7 @@ class ClientGroupManager {
       `rtmp://nchinda2.africa:2935/live/${this.name}`,
     ];
 
+    console.log(mediaSpawnOptions.join(' '));
     this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
       detached: false,
       //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
@@ -61,15 +59,15 @@ class ClientGroupManager {
 
   addClient(ws) {
     //ws shouldn't be in the global scope of arguments, but must be scoped to this function
-    this.clients[ws.id] = new WSClient(ws);
-
-    if(this.liveVideoMoov) this.liveVideoMoov.forEach((x) => ws.send(x));
+    const clientObject = new WSClient(ws);
+    this.clients[ws.id] = clientObject;
 
     ws.on('close', () => {
       Object.values(this.clients).forEach((client) => {
         const message = { flag: 'peerDisconnect', name: this.clients[ws.id].name, lastFrameTime: client.lastFrameTime };
         client.websocket.send(JSON.stringify(message));
       });
+      console.log('there is no god');
       delete this.clients[ws.id];
     });
 
@@ -78,7 +76,7 @@ class ClientGroupManager {
       if(!this.clients[ws.id]) return;
       switch(data.flag) {
         case 'webrtcSignal':
-          this.rtcClients[ws.id].client.signal(data.signal);
+          this.clients[ws.id].webrtcConnection.signal(data.signal);
           break;
         case 'syncResponse': {
           this.clients[ws.id].lastFrameTime = data.lastFrameTime;
@@ -145,9 +143,15 @@ class ClientGroupManager {
         }
         case 'ping': {
           this.clients[ws.id].update(data);
-          const currentlyTyping = Object.values(this.clients).filter((c) => c.isActiveTyping).map((c) => c.name);
+          const currentlyTyping = [];
+          Object.values(this.clients).filter((c) => c.isActiveTyping).map((c) => c.name);
+          const streamToName = {};
 
-          ws.send(JSON.stringify({ flag: 'pong', currentlyTyping }));
+          Object.values(this.clients).forEach((client) => {
+            if(client.isActiveTyping) currentlyTyping.push(client.name);
+            Object.keys(client.streams).forEach((streamId) => { streamToName[streamId] = client.name; });
+          });
+          ws.send(JSON.stringify({ flag: 'pong', currentlyTyping, streamToName }));
           break;
         }
         default:
@@ -156,39 +160,64 @@ class ClientGroupManager {
       }
     });
 
-    const rtcClient = new WebrtcClient();
-    this.rtcClients[ws.id] = rtcClient;
-
-    rtcClient.client.on('signal', (signal) => {
+    clientObject.webrtcConnection.on('signal', (signal) => {
       const rawdata = JSON.stringify({
         flag: 'webrtcSignal',
         signal,
       });
       ws.send(rawdata);
     });
+
+    clientObject.webrtcConnection.on('stream', (stream) => {
+      //delete old streams from the local storage and remote clients
+      const rawdata = JSON.stringify({
+        flag: 'removeStreams',
+        streamIds: Object.keys(clientObject.streams),
+      });
+      clientObject.streams = {};
+      this.broadcastMessage(rawdata, ws);
+
+      //save and broadcast the new stream to everyone
+      clientObject.streams[stream.id] = stream;
+      Object.values(this.clients).forEach((client) => {
+        if(client.id === ws.id) return;
+        client.webrtcConnection.addStream(stream);
+      });
+    });
+
+    clientObject.webrtcConnection.on('connect', () => {
+      Object.values(this.clients).forEach((client) => {
+        if(client.id === clientObject.id) return;
+        console.log('client.streams', client.streams);
+        Object.values(client.streams).forEach((stream) => {
+          clientObject.webrtcConnection.addStream(stream);
+        });
+      });
+    });
+
+    clientObject.webrtcConnection.on('error', () => {});
+    clientObject.webrtcConnection.on('close', () => {
+      const rawdata = JSON.stringify({
+        flag: 'removeStreams',
+        streamIds: Object.keys(clientObject.streams),
+      });
+      console.log(rawdata);
+      clientObject.webrtcConnection.destroy();
+      this.broadcastMessage(rawdata, ws);
+    });
   }
 
   broadcastMessage(rawdata, ws) {
     Object.values(this.clients).forEach((client) => {
-      if(ws && client.id == ws.id) return;
+      if(ws && client.id === ws.id) return;
       client.websocket.send(rawdata);
     });
   }
 
-  broadcastRTCMessage(rawdata, ws) {
-    Object.values(this.rtcClients).forEach((client) => {
-      if(ws && client.id == ws.id) return;
-      if(!client.client.connected) return;
-      client.client.send(rawdata);
-    });
-  }
-
   destroy() {
-    Object.values(this.rtcClients).forEach((client) => {
-      client.client.destroy();
+    Object.values(this.clients).forEach((client) => {
+      client.webrtcConnection.destroy();
     });
-    //this.videoStream.kill('SIGINT');
-    //this.audioStream.kill('SIGINT');
     this.mediaStream.kill();
   }
 }

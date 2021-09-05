@@ -1,3 +1,8 @@
+# 2.8.0 - Palladium on Carbon
+
+### Features
+* Add alpha version of voice chat support
+
 # 2.7.1
 
 ### Bug Fixes

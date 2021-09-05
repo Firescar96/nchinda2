@@ -1,22 +1,22 @@
 import WebsocketClient from './WebsocketClient';
+import OvenMediaRTCClient from './OvenMediaRTCClient';
 import WebRTCClient from './WebRTCClient';
-import constants from '../constants';
+import constants from '@/components/constants';
+import { generateName } from '@/utility';
 
 const { SKIP_BACK_SECONDS } = constants;
 
 class MessagingManager {
-  constructor(lobbyName, myName, videoController) {
+  constructor(lobbyName, videoController) {
     this.lobbyName = lobbyName;
-    this.myName = myName;
+    this.myName = generateName();
     this.videoController = videoController;
     this.streamJoined = false;
     this.websocketClient = new WebsocketClient(lobbyName, this.sendMessage.bind(this), this.receiveData.bind(this));
     this.videoBuffer = [];
     this.isActiveTyping = false;
-    this.webrtcClient = new WebRTCClient(this.sendMessage.bind(this), this.receiveData.bind(this));
-    this.webrtcClient.peerConnection.ontrack = (event) => {
-      this.videoController.livePlayer.srcObject.addTrack(event.track);
-    };
+    this.ovenMediaClient = new OvenMediaRTCClient(this.videoController);
+    this.webrtcClient = new WebRTCClient({ propsData: { videoController: this.videoController, websocketConnection: this.websocketClient.connection } });
 
     //save the eventhandlers so they can be en/disabled dynamically
     this.eventHandlers = {
@@ -50,6 +50,7 @@ class MessagingManager {
 
     if(message.flag == 'pong') {
       this.videoController.currentlyTyping = message.currentlyTyping;
+      this.webrtcClient.streamToName = message.streamToName;
     }
 
     if(message.flag == 'liveStreamData') {
@@ -60,7 +61,14 @@ class MessagingManager {
 
     //Coming Soon
     if(message.flag == 'webrtcSignal') {
-      //this.webrtcClient.client.signal(message.signal);
+      this.webrtcClient.connection.signal(message.signal);
+      return;
+    }
+
+    if(message.flag == 'removeStreams') {
+      message.streamIds.forEach((streamId) => {
+        this.videoController.peerStreams = this.videoController.peerStreams.filter((x) => x.stream.id !== streamId);
+      });
       return;
     }
 
@@ -115,7 +123,7 @@ class MessagingManager {
         const action = message.isPaused ? 'pause' : 'play';
         if(this.videoController.isLiveVideo) {
           this.videoController.livePlayer[action]();
-          this.videoController.livePlayer.currentTime = this.videoController.livePlayer.seekable.end(0);
+          //this.videoController.livePlayer.currentTime = this.videoController.livePlayer.seekable.end(0);
         } else this.videoController.video[action]();
       }
     }

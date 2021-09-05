@@ -1,6 +1,6 @@
 <template>
   <div id="livePage">
-    <div v-show="showLivePlayer" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
+    <div v-show="showLivePlayer && !notJoinedStream" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
       <video id="futuristicPlayer" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
         <button v-if="!isLivePaused" class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
@@ -44,69 +44,87 @@
 
     <div id="chatSideBar" :class="{minimized: chatMinimized}">
       <i id="minimizeButton" class="material-icons" @click="toggleSideBar">keyboard_arrow_right</i>
-      <h3 id="chatTitle">
-        conTROLLbox
-      </h3>
+
       <div id="triggersContainer">
-        <div id="sync" @click="messaging.sendMessage({flag: 'syncToMe'})">
-          Sync To Me
+        <h3 id="chatTitle">
+          conTROLLbox - <span class="capitalize">{{ selectedSection }}</span>
+        </h3>
+      </div>
+      <div id="triggersContainer">
+        <div @click="changeSection('comms')">
+          Comms
         </div>
-        <div id="sync" @click="messaging.sendMessage({flag: 'clientStatus'})">
-          Time Check
+        <div @click="changeSection('settings')">
+          Settings
         </div>
       </div>
-      <div id="nameSelectionBox">
-        <p>My Name:</p>
-        <input id="nameSelection" v-model="myName">
-      </div>
-      <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light os-host-flexbox">
-        <div v-for="(message, index) in messages" :key="index" class="messageContainer" :class="{meta: message.isMeta, myMessage: message.myMessage, new: message.isNew}">
-          <div class="message">
-            <p v-if="!message.myMessage && !message.isMeta">
-              {{ message.name }}:
-            </p>
-            <p class="indentMessage">
-              {{ message.text }}
-            </p>
-            <p v-if="message.action == 'peerDisconnect'" class="indentMessage">
-              {{ message.name }} disconnected <a @click="jumpToTime(message.time)">Jump to Time</a>
-            </p>
-            <p v-if="message.action == 'syncAction'" class="indentMessage">
-              {{ message.name }} pressed the <span class="capitalize">{{ toHumanReadable(message.flag) }}</span> button
-            </p>
-            <p v-if="message.action == 'peerConnect'" class="indentMessage">
-              {{ message.name }} connected
-            </p>
-            <div v-if="message.action == 'clientStatus'" class="indentMessage">
-              <div class="clientStatusHeader clientStatusGroup">
-                <div class="clientStatusName">
-                  Name
+      <div v-show="selectedSection == 'comms'" id="commsSection">
+        <div id="triggersContainer">
+          <div id="sync" @click="messaging.sendMessage({flag: 'syncToMe'})">
+            Sync To Me
+          </div>
+          <div id="sync" @click="messaging.sendMessage({flag: 'clientStatus'})">
+            Time Check
+          </div>
+        </div>
+        <div id="videoChats" ref="videoChats">
+          <div v-for="(stream, index) in peerStreams" :key="stream.stream.id">
+            {{ messaging.webrtcClient.streamToName[stream.stream.id] }}
+            <video ref="peerVideo" volume="0.1" :src-object.prop.camel="stream.stream" autoplay />
+            <input v-model="stream.volume" type="range" min="0" max="1" step="0.01" class="slider" @input="updateVolume(index)">
+          </div>
+        </div>
+        <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light os-host-flexbox">
+          <div v-for="(message, index) in messages" :key="index" class="messageContainer" :class="{meta: message.isMeta, myMessage: message.myMessage, new: message.isNew}">
+            <div class="message">
+              <p v-if="!message.myMessage && !message.isMeta">
+                {{ message.name }}:
+              </p>
+              <p class="indentMessage">
+                {{ message.text }}
+              </p>
+              <p v-if="message.action == 'peerDisconnect'" class="indentMessage">
+                {{ message.name }} disconnected <a @click="jumpToTime(message.time)">Jump to Time</a>
+              </p>
+              <p v-if="message.action == 'syncAction'" class="indentMessage">
+                {{ message.name }} pressed the <span class="capitalize">{{ toHumanReadable(message.flag) }}</span> button
+              </p>
+              <p v-if="message.action == 'peerConnect'" class="indentMessage">
+                {{ message.name }} connected
+              </p>
+              <div v-if="message.action == 'clientStatus'" class="indentMessage">
+                <div class="clientStatusHeader clientStatusGroup">
+                  <div class="clientStatusName">
+                    Name
+                  </div>
+                  <div class="clientStatusTime">
+                    Time
+                  </div>
                 </div>
-                <div class="clientStatusTime">
-                  Time
-                </div>
-              </div>
-              <div v-for="status in message.status" :key="status.name" class="clientStatusGroup">
-                <div class="clientStatusName">
-                  {{ status.name }}
-                </div>
-                <div class="clientStatusTime">
-                  {{ Math.round(status.lastFrameTime) }}
+                <div v-for="status in message.status" :key="status.name" class="clientStatusGroup">
+                  <div class="clientStatusName">
+                    {{ status.name }}
+                  </div>
+                  <div class="clientStatusTime">
+                    {{ Math.round(status.lastFrameTime) }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </overlay-scrollbars>
+
+        <div v-show="currentlyTyping.length" id="typingContainer">
+          ...
+          <span v-for="name in currentlyTyping">{{ name }}</span>
+          is typing...
         </div>
-      </overlay-scrollbars>
-      <div v-show="currentlyTyping.length" id="typingContainer">
-        ...
-        <span v-for="name in currentlyTyping">{{ name }}</span>
-        is typing...
+        <div id="chatInput">
+          <i id="chatBubble" class="material-icons">insert_comment</i>
+          <input v-model="newMessage" type="text" placeholder="...write a message and press enter" @input="chatOnTyping" @keyup.enter="sendChat">
+        </div>
       </div>
-      <div id="chatInput">
-        <i id="chatBubble" class="material-icons">insert_comment</i>
-        <input v-model="newMessage" placeholder="...write a message and press enter" @input="chatOnTyping" @keyup.enter="sendChat">
-      </div>
+      <Settings v-show="selectedSection == 'settings'" v-if="messaging" :messaging="messaging" />
     </div>
   </div>
 </template>
@@ -114,24 +132,25 @@
 <script>
 import Component from 'vue-class-component';
 import videojs from 'video.js';
-import { Watch } from 'vue-property-decorator';
 //this attaches seekButtons to videojs
 //eslint-disable-next-line no-unused-vars
 import seekButtons from 'videojs-seek-buttons';
-import { generateName, openFullscreen, closeFullscreen } from '@/utility';
+import { openFullscreen, closeFullscreen } from '@/utility';
 import MessagingManager from './MessagingManagers/MessagingManager';
-import constants from './constants';
+import constants from '@/components/constants';
+import Settings from './Settings';
 
 const { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } = constants;
 
 export default
-@Component()
+@Component({
+  components: { Settings },
+})
 class Live {
   data() {
     return {
-      messages: [{ isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name above.' }, { isMeta: true, name: 'Meta', text: 'Live video is currently still in beta.' }],
+      messages: [],
       newMessage: '',
-      myName: generateName(),
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
       lastSyncedTime: null,
       notJoinedStream: true,
@@ -144,12 +163,11 @@ class Live {
       currentlyTyping: [],
       isFullscreen: false,
       chatMinimized: false,
+      //webrtc things
+      messaging: null,
+      peerStreams: [],
+      selectedSection: 'comms',
     };
-  }
-
-  @Watch('myName')
-  changeName(value) {
-    this.messaging.myName = value;
   }
 
   toHumanReadable(input) {
@@ -168,33 +186,41 @@ class Live {
   }
 
   setupFuturisticPlayer() {
-    this.livePlayer = document.querySelector('video');
+    this.livePlayer = document.querySelector('video#futuristicPlayer');
     this.livePlayer.srcObject = new MediaStream();
-
-    window.livePlayer = this.livePlayer;
   }
 
   mounted() {
     this.setupFuturisticPlayer();
     //initialize videojs with options
+    window.videoController = this;
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
       controls: true,
       controlBar: {
         pictureInPictureToggle: false,
       },
-      techOrder: ['html5'],
+      html5: {
+        vhs: {
+          overrideNative: true,
+        },
+        nativeAudioTracks: false,
+        nativeVideoTracks: false,
+      },
+      fastQualityChange: true,
       liveui: true,
     });
 
     //init seekbuttons plugin
+    window.vids = this.video;
     this.video.seekButtons({
       forward: SKIP_FORWARD_SECONDS,
       back: SKIP_BACK_SECONDS,
       backIndex: 0,
     });
 
-    this.messaging = new MessagingManager(this.$route.params.stream, this.myName, this);
+    this.messaging = new MessagingManager(this.$route.params.stream, this);
+    this.messages = [{ isMeta: true, name: 'Meta', text: 'Welcome, make sure to set your name in the settings.' }, { isMeta: true, name: 'Meta', text: 'Live video is in beta. Voice chat is in beta. You have been warned.' }];
 
     const { eventHandlers } = this.messaging;
 
@@ -339,6 +365,14 @@ class Live {
     } else {
       this.$refs.chatMessages.osInstance().options({ overflowBehavior: { x: 's', y: 's' }, scrollbars: { visibility: 'a' } });
     }
+  }
+
+  updateVolume(index) {
+    this.$refs.peerVideo[index].volume = this.peerStreams[index].volume;
+  }
+
+  changeSection(name) {
+    this.selectedSection = name;
   }
 }
 </script>
@@ -601,7 +635,7 @@ class Live {
       }
     }
 
-    input {
+    input[type="text"] {
       background: transparent;
       outline: none;
       border: none;
@@ -610,136 +644,130 @@ class Live {
       color: white;
     }
 
-    #nameSelectionBox {
-      margin-top: 15px;
+    #commsSection {
       display: flex;
       flex-direction: column;
-      padding: 0 10px;
-
-      p {
-        margin: 0 2px;
-      }
-
-      span {
-        width: 20%;
-      }
-
-      input {
-        flex: 1;
-        margin: 10px auto;
-      }
-    }
-
-    #chatMessages {
       flex: 1;
-      font-size: 16px;
-      padding: 0 10px;
-      overflow-y: auto;
 
-      .os-content {
-        min-height: 100%;
-      }
+      #chatMessages {
+        flex: 1;
+        font-size: 16px;
+        padding: 0 10px;
+        overflow-y: auto;
 
-      .messageContainer {
-        padding: 8px 0;
-        overflow-wrap: break-word;
-        overflow: hidden;
-
-        &.meta {
-          color: #aaa;
+        .os-content {
+          min-height: 100%;
         }
 
-        &.myMessage {
-          text-align: right;
-          margin-left: 0;
+        .messageContainer {
+          padding: 8px 0;
+          overflow-wrap: break-word;
+          overflow: hidden;
+
+          &.meta {
+            color: #aaa;
+          }
+
+          &.myMessage {
+            text-align: right;
+            margin-left: 0;
+
+            .indentMessage {
+              margin-left: 0;
+            }
+          }
+
+          p {
+            margin: 5px 0;
+          }
+
+          .message {
+            position: relative;
+            animation-name: newMessage;
+            animation-duration: 1s;
+          }
 
           .indentMessage {
-            margin-left: 0;
-          }
-        }
-
-        p {
-          margin: 5px 0;
-        }
-
-        .message {
-          position: relative;
-          animation-name: newMessage;
-          animation-duration: 1s;
-        }
-
-        .indentMessage {
-          position: relative;
-          margin-left: 20px;
-        }
-
-        a {
-          color: #ffff16a1;
-          cursor: ew-resize;
-        }
-
-        .clientStatusHeader {
-          border-bottom: solid 1px #ddd;
-          margin-bottom: 2px;
-        }
-
-        .clientStatusGroup {
-          display: flex;
-          justify-content: space-between;
-          text-align: left;
-
-          .clientStatusName {
-            flex: 1;
-            margin: auto;
-            padding: 2px 5px;
-            border-right: solid 1px #ddd;
-            border-bottom: solid 1px #555;
+            position: relative;
+            margin-left: 20px;
           }
 
-          .clientStatusTime {
-            width: 60px;
-            padding: 2px 5px;
-            margin: auto;
-            border-bottom: solid 1px #555;
+          a {
+            color: #ffff16a1;
+            cursor: ew-resize;
           }
-        }
 
-        @keyframes newMessage {
-          from {
-            right: -300px;
+          .clientStatusHeader {
+            border-bottom: solid 1px #ddd;
+            margin-bottom: 2px;
           }
-          to {
-            right: 0;
+
+          .clientStatusGroup {
+            display: flex;
+            justify-content: space-between;
+            text-align: left;
+
+            .clientStatusName {
+              flex: 1;
+              margin: auto;
+              padding: 2px 5px;
+              border-right: solid 1px #ddd;
+              border-bottom: solid 1px #555;
+            }
+
+            .clientStatusTime {
+              width: 60px;
+              padding: 2px 5px;
+              margin: auto;
+              border-bottom: solid 1px #555;
+            }
+          }
+
+          @keyframes newMessage {
+            from {
+              right: -300px;
+            }
+            to {
+              right: 0;
+            }
           }
         }
       }
-    }
 
-    #typingContainer {
-      padding-left: 10px;
-      color: #999;
-    }
+      #videoChats {
+        padding: 0 10px;
 
-    #chatInput {
-      position: relative;
-      display: flex;
-      transition: all .5s .2s;
-      right: 0;
-      margin-left: 0;
-
-      #chatBubble {
-        position: absolute;
-        top: 0;
-        left: -24px;
-        opacity: 0;
-        transition: all 1s;
+        video {
+          display: none;
+        }
       }
 
-      input {
-        border-top: solid 2px white;
-        height: 40px;
-        margin: 0 10px;
-        flex: 1;
+      #typingContainer {
+        padding-left: 10px;
+        color: #999;
+      }
+
+      #chatInput {
+        position: relative;
+        display: flex;
+        transition: all .5s .2s;
+        right: 0;
+        margin-left: 0;
+
+        #chatBubble {
+          position: absolute;
+          top: 0;
+          left: -24px;
+          opacity: 0;
+          transition: all 1s;
+        }
+
+        input {
+          border-top: solid 2px white;
+          height: 40px;
+          margin: 0 10px;
+          flex: 1;
+        }
       }
     }
 
@@ -818,5 +846,9 @@ class Live {
     text-transform: capitalize;
   }
 
+}
+
+.capitalize {
+  text-transform: capitalize;
 }
 </style>

@@ -6,13 +6,13 @@ const liveWS = engineio();
 
 liveWS.attach(httpServer, {
   pingTimeout: 2000,
-  pingInterval: 10000,
+  pingInterval: 4000,
   transports: ['websocket'],
 });
 
 liveWS.attach(httpsServer, {
   pingTimeout: 2000,
-  pingInterval: 10000,
+  pingInterval: 4000,
   transports: ['websocket'],
 });
 
@@ -27,6 +27,7 @@ function onConnection(socket) {
 
   socket.on('close', () => {
     setTimeout(() => {
+      if(!streamClients[socket.roomName]) return;
       //if this is the last client delete all history of this room
       if(Object.keys(streamClients[socket.roomName].clients).length === 1) {
         streamClients[socket.roomName].destroy();
