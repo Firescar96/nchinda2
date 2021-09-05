@@ -70,7 +70,7 @@
         <div id="videoChats" ref="videoChats">
           <div v-for="(stream, index) in peerStreams" :key="stream.stream.id">
             {{ messaging.webrtcClient.streamToName[stream.stream.id] }}
-            <video ref="peerVideo" volume="0.1" :src-object.prop.camel="stream.stream" autoplay />
+            <audio ref="peerVideo" :src-object.prop.camel="stream.stream" autoplay />
             <input v-model="stream.volume" type="range" min="0" max="1" step="0.01" class="slider" @input="updateVolume(index)">
           </div>
         </div>
@@ -119,8 +119,11 @@
           <span v-for="name in currentlyTyping">{{ name }}</span>
           is typing...
         </div>
-        <div id="chatInput">
+        <div v-if="messaging" id="chatInput">
           <i id="chatBubble" class="material-icons">insert_comment</i>
+          <i v-if="!messaging.webrtcClient.selectedStream" class="microphoneBubble micNone material-icons">mic_off</i>
+          <i v-else-if="messaging.webrtcClient.audioInputEnabled" class="microphoneBubble micOn material-icons" @click="messaging.webrtcClient.audioInputEnabled = false">mic</i>
+          <i v-else-if="!messaging.webrtcClient.audioInputEnabled" class="microphoneBubble micOff material-icons" @click="messaging.webrtcClient.audioInputEnabled = true">mic_off</i>
           <input v-model="newMessage" type="text" placeholder="...write a message and press enter" @input="chatOnTyping" @keyup.enter="sendChat">
         </div>
       </div>
@@ -648,12 +651,12 @@ class Live {
       display: flex;
       flex-direction: column;
       flex: 1;
+      overflow-y: hidden;
 
       #chatMessages {
-        flex: 1;
+        margin-bottom: auto;
         font-size: 16px;
         padding: 0 10px;
-        overflow-y: auto;
 
         .os-content {
           min-height: 100%;
@@ -762,10 +765,26 @@ class Live {
           transition: all 1s;
         }
 
+        .microphoneBubble {
+          margin: auto 0;
+          cursor: pointer;
+
+          &.micOn {
+            color: #2f9e2f;
+          }
+          &.micOff {
+            color: #711c1c;
+          }
+          &.micNone {
+            color: #666;
+            cursor: not-allowed;
+          }
+        }
+
         input {
           border-top: solid 2px white;
           height: 40px;
-          margin: 0 10px;
+          margin-right: 10px;
           flex: 1;
         }
       }

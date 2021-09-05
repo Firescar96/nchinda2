@@ -1,5 +1,5 @@
 import Component from 'vue-class-component';
-import { shallowReactive } from '@vue/composition-api';
+import { shallowRef } from '@vue/composition-api';
 
 const { SimplePeer } = window;
 
@@ -10,9 +10,10 @@ const { SimplePeer } = window;
   },
   setup() {
     return {
-      audioInputs: shallowReactive([]),
-      audioOutputs: shallowReactive([]),
-      streamToName: shallowReactive({}),
+      audioInputs: shallowRef([]),
+      audioOutputs: shallowRef([]),
+      streamToName: shallowRef({}),
+      _audioInputEnabled: shallowRef(true),
     };
   },
 })
@@ -27,7 +28,7 @@ class WebRTCClient {
     this.connection.on('stream', (stream) => {
       this.videoController.$set(this.videoController.peerStreams, this.videoController.peerStreams.length, {
         stream,
-        volume: 1,
+        volume: 0.5,
       });
     });
 
@@ -41,16 +42,33 @@ class WebRTCClient {
       this.websocketConnection.send(rawdata);
     });
 
+    this.selectedStream = null;
     this.setupMediaSources();
   }
 
-  async setupMediaSources() {
-    this.selectedStream = new MediaStream();
-
-    await this.gotDevices();
+  get audioInputEnabled() {
+    return this._audioInputEnabled;
   }
 
-  async gotDevices() {
+  set audioInputEnabled(mutedState) {
+    console.log('audioInputEnabled', this._audioInputEnabled);
+    if(!this.selectedStream) return;
+    this.selectedStream.getTracks().forEach((track) => {
+      if(track.kind !== 'audio') return;
+      track.enabled = mutedState;
+    });
+    console.log(this.selectedStream.getTracks(), mutedState);
+    this._audioInputEnabled = mutedState;
+  }
+
+  async setupMediaSources() {
+    //this creates the popup for the user to give microphone access
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    await this.getDevices();
+  }
+
+  async getDevices() {
     const deviceInfos = await navigator.mediaDevices.enumerateDevices();
     //Handles being called several times to update labels. Preserve values.
     this.audioInputs = [];
@@ -84,7 +102,8 @@ class WebRTCClient {
   }
 
   async gotStream(stream) {
-    this.connection.removeStream(this.selectedStream);
+    if(this.selectedStream) this.connection.removeStream(this.selectedStream);
+
     this.selectedStream = stream;
     this.connection.addStream(stream);
   }
@@ -95,7 +114,7 @@ class WebRTCClient {
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     await this.gotStream(stream);
-    await this.gotDevices();
+    await this.getDevices();
   }
 }
 

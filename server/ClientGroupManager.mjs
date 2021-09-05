@@ -15,9 +15,10 @@ class ClientGroupManager {
   }
 
   initializeLiveTranscoder(name) {
-    if(process.env.NODE_ENV == 'production') {
+    const hlsManifestPath = `/mnt/aux1/nchinda2/hls/${this.name}.m3u8`;
+    if(process.env.NODE_ENV == 'production' && !fs.existsSync(hlsManifestPath)) {
       const source = path.resolve(process.cwd(), 'server/base.m3u8');
-      fs.copyFileSync(source, `/mnt/aux1/nchinda2/hls/${this.name}.m3u8`);
+      fs.copyFileSync(source, hlsManifestPath);
     }
 
     //helpful documentation on ffmpeg streaming https://trac.ffmpeg.org/wiki/StreamingGuide
@@ -49,7 +50,6 @@ class ClientGroupManager {
       `rtmp://nchinda2.africa:2935/live/${this.name}`,
     ];
 
-    console.log(mediaSpawnOptions.join(' '));
     this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
       detached: false,
       //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
@@ -67,7 +67,6 @@ class ClientGroupManager {
         const message = { flag: 'peerDisconnect', name: this.clients[ws.id].name, lastFrameTime: client.lastFrameTime };
         client.websocket.send(JSON.stringify(message));
       });
-      console.log('there is no god');
       delete this.clients[ws.id];
     });
 
@@ -188,7 +187,6 @@ class ClientGroupManager {
     clientObject.webrtcConnection.on('connect', () => {
       Object.values(this.clients).forEach((client) => {
         if(client.id === clientObject.id) return;
-        console.log('client.streams', client.streams);
         Object.values(client.streams).forEach((stream) => {
           clientObject.webrtcConnection.addStream(stream);
         });
@@ -201,7 +199,6 @@ class ClientGroupManager {
         flag: 'removeStreams',
         streamIds: Object.keys(clientObject.streams),
       });
-      console.log(rawdata);
       clientObject.webrtcConnection.destroy();
       this.broadcastMessage(rawdata, ws);
     });

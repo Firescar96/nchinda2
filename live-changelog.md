@@ -1,7 +1,15 @@
+# 2.8.1
+
+### Features
+* Add mute button
+
 # 2.8.0 - Palladium on Carbon
 
 ### Features
 * Add alpha version of voice chat support
+
+### Bug Fixes
+* only copy the initial hls manifest if one does not already exist
 
 # 2.7.1
 
