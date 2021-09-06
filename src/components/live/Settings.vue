@@ -80,5 +80,17 @@ class Settings {
         margin: 10px auto;
       }
     }
+
+    .v-select {
+      svg {
+        fill: #ddd;
+      }
+      .vs__dropdown-toggle {
+        border-color: #aaa;
+      }
+      .vs__selected {
+        color: #eee;
+      }
+    }
   }
 </style>

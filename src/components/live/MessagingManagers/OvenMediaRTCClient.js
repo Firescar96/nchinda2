@@ -19,6 +19,7 @@ class OvenMediaRTCClient {
     this.peerConnection.onicecandidate = this.gotIceCandidate.bind(this);
 
     this.peerConnection.ontrack = (event) => {
+      event.track.enabled = false; //without this audio output will start immediately when users join the stream
       videoController.livePlayer.srcObject.addTrack(event.track);
     };
   }

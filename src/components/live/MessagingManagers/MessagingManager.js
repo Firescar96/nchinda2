@@ -51,6 +51,10 @@ class MessagingManager {
     if(message.flag == 'pong') {
       this.videoController.currentlyTyping = message.currentlyTyping;
       this.webrtcClient.streamToName = message.streamToName;
+
+      //filter out disconnected streams
+      const currentStreams = new Set(Object.keys(message.streamToName));
+      this.videoController.peerStreams = this.videoController.peerStreams.filter((x) => currentStreams.has(x.stream.id));
     }
 
     if(message.flag == 'liveStreamData') {
@@ -62,13 +66,6 @@ class MessagingManager {
     //Coming Soon
     if(message.flag == 'webrtcSignal') {
       this.webrtcClient.connection.signal(message.signal);
-      return;
-    }
-
-    if(message.flag == 'removeStreams') {
-      message.streamIds.forEach((streamId) => {
-        this.videoController.peerStreams = this.videoController.peerStreams.filter((x) => x.stream.id !== streamId);
-      });
       return;
     }
 
@@ -107,23 +104,24 @@ class MessagingManager {
     if(message.flag === 'seekToLive') this.videoController.switchToLive();
     if(message.flag === 'seekToUnlive') this.videoController.switchToUnlive();
 
+    console.log('message', message);
     if(message.flag == 'syncResponse') {
-      if(this.videoController.isLiveVideo != message.isLiveVideo) {
+      if(this.videoController.isLiveVideo !== message.isLiveVideo) {
         if(message.isLiveVideo) this.videoController.switchToLive();
         else this.videoController.switchToUnlive();
       }
     }
 
     if(['play', 'pause', 'seek', 'seekBack', 'seekForward', 'seekToLive', 'syncResponse', 'syncToMe'].includes(message.flag) && this.streamJoined) {
-      if(!this.videoController.isLiveVideo) {
+      if(!this.videoController.isLiveVideo && message.lastFrameTime) {
         this.videoController.video.currentTime(message.lastFrameTime);
       }
-      //!! is required to ensure isPaused is cast to a boolean
+
       if(this.streamJoined && 'isPaused' in message) {
         const action = message.isPaused ? 'pause' : 'play';
         if(this.videoController.isLiveVideo) {
           this.videoController.livePlayer[action]();
-          //this.videoController.livePlayer.currentTime = this.videoController.livePlayer.seekable.end(0);
+          this.videoController.isLivePaused = message.isPaused;
         } else this.videoController.video[action]();
       }
     }

@@ -26,9 +26,21 @@ class WebRTCClient {
 
     //it's important this stream handler is placed early on, before the signal handler so we don't miss any messages from peers
     this.connection.on('stream', (stream) => {
+      const audioContext = new AudioContext();
+      const audioGainNode = audioContext.createGain();
+
+      const audioSource = audioContext.createMediaStreamSource(stream);
+      const audioDestination = audioContext.createMediaStreamDestination();
+      audioSource.connect(audioGainNode);
+      audioGainNode.connect(audioDestination);
+      audioGainNode.gain.value = 0.5;
+      window.stream = audioDestination.stream;
+      //window.peer =
       this.videoController.$set(this.videoController.peerStreams, this.videoController.peerStreams.length, {
-        stream,
+        stream, //original stream is used to track with peer is connected and eventually can be used for video
+        audioStream: audioDestination.stream, //this supports gain
         volume: 0.5,
+        audioGainNode,
       });
     });
 
@@ -51,13 +63,10 @@ class WebRTCClient {
   }
 
   set audioInputEnabled(mutedState) {
-    console.log('audioInputEnabled', this._audioInputEnabled);
     if(!this.selectedStream) return;
-    this.selectedStream.getTracks().forEach((track) => {
-      if(track.kind !== 'audio') return;
+    this.selectedStream.getAudioTracks().forEach((track) => {
       track.enabled = mutedState;
     });
-    console.log(this.selectedStream.getTracks(), mutedState);
     this._audioInputEnabled = mutedState;
   }
 

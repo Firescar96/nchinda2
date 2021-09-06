@@ -1,7 +1,7 @@
 <template>
   <div id="livePage">
     <div v-show="showLivePlayer && !notJoinedStream" id="jsmpeg-player" class="video-js vjs-live vjs-liveui">
-      <video id="futuristicPlayer" />
+      <video ref="futuristicPlayer" autostart="0" />
       <div class="jsmpeg-controls-bar vjs-control-bar">
         <button v-if="!isLivePaused" class="vjs-play-control vjs-control vjs-button vjs-playing" type="button" title="Pause" @click="livePause">
           <span aria-hidden="true" class="vjs-icon-placeholder" />
@@ -70,8 +70,9 @@
         <div id="videoChats" ref="videoChats">
           <div v-for="(stream, index) in peerStreams" :key="stream.stream.id">
             {{ messaging.webrtcClient.streamToName[stream.stream.id] }}
-            <audio ref="peerVideo" :src-object.prop.camel="stream.stream" autoplay />
-            <input v-model="stream.volume" type="range" min="0" max="1" step="0.01" class="slider" @input="updateVolume(index)">
+            <audio ref="peerVideo" :src-object.prop.camel="stream.audioStream" autoplay />
+            <input v-model="stream.volume" type="range" min="0" max="3" step="0.1" class="slider" @input="updateVolume(index)">
+            {{ stream.volume }}
           </div>
         </div>
         <overlay-scrollbars id="chatMessages" ref="chatMessages" class="os-theme-light os-host-flexbox">
@@ -116,12 +117,12 @@
 
         <div v-show="currentlyTyping.length" id="typingContainer">
           ...
-          <span v-for="name in currentlyTyping">{{ name }}</span>
-          is typing...
+          <span>{{ currentlyTyping.join(', ') }}</span>
+          {{ currentlyTyping.length == 1? 'is': 'are' }} typing ...
         </div>
         <div v-if="messaging" id="chatInput">
           <i id="chatBubble" class="material-icons">insert_comment</i>
-          <i v-if="!messaging.webrtcClient.selectedStream" class="microphoneBubble micNone material-icons">mic_off</i>
+          <i v-if="!messaging.webrtcClient.selectedStream" v-b-tooltip.hover="'Visit your settings to choose an audio input device to enable chatting'" class="microphoneBubble micNone material-icons">mic_off</i>
           <i v-else-if="messaging.webrtcClient.audioInputEnabled" class="microphoneBubble micOn material-icons" @click="messaging.webrtcClient.audioInputEnabled = false">mic</i>
           <i v-else-if="!messaging.webrtcClient.audioInputEnabled" class="microphoneBubble micOff material-icons" @click="messaging.webrtcClient.audioInputEnabled = true">mic_off</i>
           <input v-model="newMessage" type="text" placeholder="...write a message and press enter" @input="chatOnTyping" @keyup.enter="sendChat">
@@ -158,7 +159,7 @@ class Live {
       lastSyncedTime: null,
       notJoinedStream: true,
       isLivePaused: false,
-      isLiveVideo: false,
+      isLiveVideo: null,
       liveVolumeLevel: 1,
       showingProgressBar: false,
       showLivePlayer: false,
@@ -189,14 +190,15 @@ class Live {
   }
 
   setupFuturisticPlayer() {
-    this.livePlayer = document.querySelector('video#futuristicPlayer');
+    this.livePlayer = this.$refs.futuristicPlayer;
     this.livePlayer.srcObject = new MediaStream();
+    this.livePlayer.pause();
+    window.livePlayer = this.livePlayer;
   }
 
   mounted() {
     this.setupFuturisticPlayer();
     //initialize videojs with options
-    window.videoController = this;
     this.video = videojs(this.$refs.liveVid, {
       preload: 'auto',
       controls: true,
@@ -215,7 +217,6 @@ class Live {
     });
 
     //init seekbuttons plugin
-    window.vids = this.video;
     this.video.seekButtons({
       forward: SKIP_FORWARD_SECONDS,
       back: SKIP_BACK_SECONDS,
@@ -295,8 +296,8 @@ class Live {
     //on join request an update to the current time and status of peers
     this.messaging.sendMessage({ flag: 'syncRequest' });
 
-    if(this.isLiveVideo) this.switchToLive();
-    else this.switchToUnlive();
+    //if(this.isLiveVideo) this.switchToLive();
+    //else this.switchToUnlive();
   }
 
   goFullScreen() {
@@ -334,6 +335,9 @@ class Live {
 
     this.video.pause();
     this.livePlayer.play();
+    //on the first join we need to reenable the liveplayer tracks, which were disabled on page load
+    this.livePlayer.srcObject.getTracks().forEach((x) => { x.enabled = true; });
+
     //when the player first starts is possible the user presses play before the player seekable ranges fully loaded
     if(this.livePlayer.seekable.length) this.livePlayer.currentTime = this.livePlayer.seekable.end(0);
     this.isLiveVideo = true;
@@ -371,7 +375,7 @@ class Live {
   }
 
   updateVolume(index) {
-    this.$refs.peerVideo[index].volume = this.peerStreams[index].volume;
+    this.peerStreams[index].audioGainNode.gain.value = this.peerStreams[index].volume;
   }
 
   changeSection(name) {
@@ -651,12 +655,12 @@ class Live {
       display: flex;
       flex-direction: column;
       flex: 1;
-      overflow-y: hidden;
 
       #chatMessages {
         margin-bottom: auto;
         font-size: 16px;
         padding: 0 10px;
+        height: 100%;
 
         .os-content {
           min-height: 100%;
@@ -665,7 +669,9 @@ class Live {
         .messageContainer {
           padding: 8px 0;
           overflow-wrap: break-word;
-          overflow: hidden;
+          overflow-x: hidden; // prevents overlay scrollbars from thinking it might need to add horizontal scrollbars during initial render
+          display: block;
+          width: 100%;
 
           &.meta {
             color: #aaa;
@@ -800,62 +806,64 @@ class Live {
         transform: rotateY(180deg);
       }
 
-      #chatMessages {
-        right: 300px;
-        position: relative;
+      #commsSection {
+        #chatMessages {
+          right: 300px;
+          position: relative;
 
-        .os-content {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
+          .os-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+          }
+
+          .messageContainer {
+            opacity: 0;
+            margin: 5px auto 5px 0;
+
+            .message {
+              padding: 5px 10px;
+              border-radius: 5px;
+              background: #000d;
+            }
+
+            &.new {
+              opacity: 1;
+              display: block;
+            }
+
+            &.meta {
+              margin-right: 0;
+              padding: 0;
+            }
+
+            &.myMessage {
+              text-align: right;
+              margin-left: auto;
+              margin-right: 0;
+            }
+          }
         }
 
-        .messageContainer {
-          opacity: 0;
-          margin: 5px auto 5px 0;
-
-          .message {
-            padding: 5px 10px;
-            border-radius: 5px;
-            background: #000d;
-          }
-
-          &.new {
-            opacity: 1;
-            display: block;
-          }
-
-          &.meta {
-            margin-right: 0;
-            padding: 0;
-          }
-
-          &.myMessage {
-            text-align: right;
-            margin-left: auto;
-            margin-right: 0;
-          }
-        }
-      }
-
-      #typingContainer {
-        position: relative;
-        right: 300px;
-      }
-
-      #chatInput {
-        position: relative;
-        align-items: center;
-        margin-bottom: 60px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-
-        &:hover {
+        #typingContainer {
+          position: relative;
           right: 300px;
         }
 
-        #chatBubble {
-          opacity: 1;
+        #chatInput {
+          position: relative;
+          align-items: center;
+          margin-bottom: 60px;
+          padding-top: 10px;
+          padding-bottom: 10px;
+
+          &:hover {
+            right: 300px;
+          }
+
+          #chatBubble {
+            opacity: 1;
+          }
         }
       }
     }
@@ -869,5 +877,9 @@ class Live {
 
 .capitalize {
   text-transform: capitalize;
+}
+
+.b-tooltip .tooltip-inner {
+  text-align: left;
 }
 </style>

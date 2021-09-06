@@ -30,6 +30,8 @@
 <style src='videojs-seek-buttons/dist/videojs-seek-buttons.css'></style>
 <style lang="scss" src='material-icons/iconfont/material-icons.scss'></style>
 <style lang="scss" src='vue-select/src/scss/vue-select.scss'></style>
+<style src='bootstrap/dist/css/bootstrap.css'></style>
+<style src='bootstrap-vue/dist/bootstrap-vue.css'></style>
 <style lang="scss">
 html, body {
   margin: 0;

@@ -85,6 +85,7 @@ class ClientGroupManager {
 
           const numSyncResponses = Object.values(this.clients).reduce((a, b) => (b.ackedSyncRequest ? a + 1 : a), 0);
 
+          console.log('numResponsesRequested', this.numResponsesRequested);
           if(numSyncResponses < this.numResponsesRequested) break;
 
           let maximumTime = Number.MIN_SAFE_INTEGER;
@@ -93,7 +94,7 @@ class ClientGroupManager {
             if(!client.ackedSyncRequest) return;
 
             maximumTime = Math.max(maximumTime, client.lastFrameTime);
-            isPaused |= client.isPaused;
+            isPaused = isPaused || client.isPaused;
           });
           if(maximumTime == Number.MIN_SAFE_INTEGER) break;
           this.clientsWaitingToSync.forEach((clientWS) => {
@@ -113,9 +114,23 @@ class ClientGroupManager {
 
           break;
         }
-        case 'syncRequest':
+        case 'syncRequest': {
           this.numResponsesRequested = Object
             .keys(this.clients).length - 1;
+
+          const syncedClients = Object.values(this.clients).filter((x) => x.lastFrameTime).length;
+          //the first clients (intentionally plural) have no one to sync to so shortcut
+          //there will be clients who have connected to the server but have not yet joined the stream
+          if(!syncedClients) {
+            const responseMessage = {
+              flag: 'syncResponse',
+              isLiveVideo: false,
+              isPaused: false,
+            };
+            ws.send(JSON.stringify(responseMessage));
+            return;
+          }
+
           this.numSyncResponses = 0;
           this.clientsWaitingToSync.push(ws);
 
@@ -126,7 +141,9 @@ class ClientGroupManager {
             client.websocket.send(rawdata);
             client.ackedSyncRequest = false;
           });
+
           break;
+        }
         case 'syncToMe': {
           this.broadcastMessage(rawdata, ws);
           break;
@@ -168,13 +185,8 @@ class ClientGroupManager {
     });
 
     clientObject.webrtcConnection.on('stream', (stream) => {
-      //delete old streams from the local storage and remote clients
-      const rawdata = JSON.stringify({
-        flag: 'removeStreams',
-        streamIds: Object.keys(clientObject.streams),
-      });
+      //delete old streams from the local storage
       clientObject.streams = {};
-      this.broadcastMessage(rawdata, ws);
 
       //save and broadcast the new stream to everyone
       clientObject.streams[stream.id] = stream;
@@ -195,12 +207,7 @@ class ClientGroupManager {
 
     clientObject.webrtcConnection.on('error', () => {});
     clientObject.webrtcConnection.on('close', () => {
-      const rawdata = JSON.stringify({
-        flag: 'removeStreams',
-        streamIds: Object.keys(clientObject.streams),
-      });
       clientObject.webrtcConnection.destroy();
-      this.broadcastMessage(rawdata, ws);
     });
   }
 

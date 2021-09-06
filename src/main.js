@@ -5,6 +5,7 @@ import vSelect from 'vue-select';
 import { OverlayScrollbarsPlugin } from 'overlayscrollbars-vue';
 import 'simple-peer/simplepeer.min.js';
 import VueCompositionAPI from '@vue/composition-api';
+import { TooltipPlugin } from 'bootstrap-vue';
 import App from './App';
 
 import router from './router';
@@ -14,6 +15,7 @@ Vue.use(OverlayScrollbarsPlugin);
 Vue.component('VSelect', vSelect);
 Vue.use(VueRouter);
 Vue.use(VueCompositionAPI);
+Vue.use(TooltipPlugin);
 Vue.config.productionTip = false;
 
 marked.setOptions({

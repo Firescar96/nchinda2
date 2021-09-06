@@ -1,3 +1,15 @@
+# 2.8.2
+
+### Features
+* Add gain to audio streams to increase the dynamic range
+
+### Bug Fixes
+* Fixed zombie webrtc peers that would stay in the ui after the client disconnected
+* Changed the audio dropdown colors to be human readable
+* Fix minimized chat
+* Fix live player ui display of play/pause state
+* Stop the live player autoplaying when page opens - includes rework of initial syncing logic
+
 # 2.8.1
 
 ### Features
