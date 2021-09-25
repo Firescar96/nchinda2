@@ -1,6 +1,7 @@
 import childProcess from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import forever from 'forever-monitor';
 import { WSClient } from './WSClient.mjs';
 
 class ClientGroupManager {
@@ -28,7 +29,7 @@ class ClientGroupManager {
     //a pretty complete list of ffmpeg flags https://gist.github.com/tayvano/6e2d456a9897f55025e25035478a3a50
     //copies the data from the rtmp live stream over to nginx for a playlist
     const mediaSpawnOptions = [
-      '-re', //realtime? I heard it's good for livestreams and bad for writing to a file, streaming doesn't seem to work without it, the output is more regular with this flag
+      'ffmpeg',
       '-i',
       `http://nchinda2.africa:3274/live/${this.name}/playlist.m3u8`,
       '-reconnect',
@@ -50,10 +51,8 @@ class ClientGroupManager {
       `rtmp://nchinda2.africa:2935/live/${this.name}`,
     ];
 
-    this.mediaStream = childProcess.spawn('ffmpeg', mediaSpawnOptions, {
-      detached: false,
-      //if we don't ignore stdin then ffmpeg will stop and show a control panel with a 'c' comes up in the output
-      stdio: ['ignore', 'pipe', 'ignore'],
+    this.mediaStream = forever.start(mediaSpawnOptions, {
+      silent: true,
     });
   }
 

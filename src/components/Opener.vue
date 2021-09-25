@@ -1,7 +1,6 @@
 <template>
   <div id="opener">
     <div>
-      Nchinda Nchinda
       <div id="livestreamBox">
         <div>Active Livestreams</div>
         <!-- <a id="sportDeath" class="livestream-link" href="/live/roast">
@@ -28,21 +27,6 @@
   </div>
 </template>
 
-<script>
-import Component from 'vue-class-component';
-
-export default
-@Component()
-class Opener {
-  mounted() {
-
-  }
-
-  created() {
-
-  }
-}
-</script>
 <style lang="scss">
   @font-face {
       font-family: "IndieFlower";
@@ -58,6 +42,7 @@ class Opener {
     font-family: IndieFlower;
     color: white;
     margin-top: 20px;
+    margin-left: 20px;
     font-size: 40px;
 
     a {

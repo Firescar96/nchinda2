@@ -1,3 +1,14 @@
+# 2.8.3
+
+### Features
+* Notification sound for messages when page is not active
+* Add forever-monitor to reconnect hls stream after stream source dis/reconnects 
+
+### Errata
+* Uprade and adjust OvenMediaPlayer settings to use less cpu
+* last update before moving to cenza.com
+
+
 # 2.8.2
 
 ### Features

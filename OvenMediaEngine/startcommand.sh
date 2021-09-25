@@ -12,6 +12,6 @@ docker run -d \
 -p 10006-10010:10006-10010/udp \
 -v ome-origin-conf:/opt/ovenmediaengine/bin/origin_conf \
 -v ome-edge-conf:/opt/ovenmediaengine/bin/edge_conf \
--v ome-certificates:/root/certificates \
+-v /etc/letsencrypt:/root/certificates \
 --name ovenmediaengine \
 airensoft/ovenmediaengine:latest

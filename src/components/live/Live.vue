@@ -158,7 +158,7 @@ class Live {
       triggerRemoteSync: false, //when false don't propagate actions to everyone, they are updating our local current time
       lastSyncedTime: null,
       notJoinedStream: true,
-      isLivePaused: false,
+      isLivePaused: true,
       isLiveVideo: null,
       liveVolumeLevel: 1,
       showingProgressBar: false,
@@ -192,7 +192,7 @@ class Live {
   setupFuturisticPlayer() {
     this.livePlayer = this.$refs.futuristicPlayer;
     this.livePlayer.srcObject = new MediaStream();
-    this.livePlayer.pause();
+    //this.livePlayer.pause();
     window.livePlayer = this.livePlayer;
   }
 
@@ -214,6 +214,9 @@ class Live {
       },
       fastQualityChange: true,
       liveui: true,
+      liveTracker: {
+        trackingThreshold: 0,
+      },
     });
 
     //init seekbuttons plugin
@@ -288,6 +291,12 @@ class Live {
 
     await this.$nextTick();
     this.$refs.chatMessages.osInstance().scroll('100%');
+
+    //if this tab is not in focus play a notification sound
+    if(document.visibilityState !== 'visible') {
+      const audio = new Audio('/live/hmm-girl-tone.mp3');
+      audio.play();
+    }
   }
 
   joinStream() {
@@ -295,9 +304,6 @@ class Live {
     this.messaging.streamJoined = true;
     //on join request an update to the current time and status of peers
     this.messaging.sendMessage({ flag: 'syncRequest' });
-
-    //if(this.isLiveVideo) this.switchToLive();
-    //else this.switchToUnlive();
   }
 
   goFullScreen() {
@@ -335,6 +341,7 @@ class Live {
 
     this.video.pause();
     this.livePlayer.play();
+    this.isLivePaused = false;
     //on the first join we need to reenable the liveplayer tracks, which were disabled on page load
     this.livePlayer.srcObject.getTracks().forEach((x) => { x.enabled = true; });
 
@@ -349,6 +356,7 @@ class Live {
 
     //order isn't important, but shutdown the live player before loading the unlive player
     this.livePlayer.pause();
+    this.isLivePaused = true;
 
     //changing the source triggers videojs to reload and do a check on the length of the loaded video
     //if video.liveTracker.liveWindow() > 30 (seconds) then the progreess bar will be shown, I don't know of a more intuitive way to trigger this refresh otherwise

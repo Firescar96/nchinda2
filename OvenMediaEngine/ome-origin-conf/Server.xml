@@ -29,14 +29,11 @@
 			<RTMP>
 				<Port>${env:OME_RTMP_PROV_PORT:1935}</Port>
 			</RTMP>
-			<SRT>
-				<Port>${env:OME_SRT_PROV_PORT:9999}</Port>
-			</SRT>
 			<WebRTC>
 				<Signalling>
 					<Port>${env:OME_SIGNALLING_PORT:3333}</Port>
 					<!-- If you want to use TLS, specify the TLS port -->
-					<!-- <TLSPort>3334</TLSPort> -->
+					<TLSPort>3334</TLSPort>
 				</Signalling>
 				<IceCandidates>
 					<TcpRelay>${env:OME_TCP_RELAY_ADDRESS:*:3478}</TcpRelay>
@@ -46,10 +43,6 @@
 		</Providers>
 
 		<Publishers>
-			<!-- The OVT is protocol for ORIGIN-EDGE -->
-			<!-- <OVT>
-				<Port>${env:OME_ORIGIN_PORT:9000}</Port>
-			</OVT> -->
 			<HLS>
 				<!-- 3274 is DASH as a number -->
 				<Port>${env:OME_HLS_STREAM_PORT:3274}</Port>
@@ -137,18 +130,15 @@
 						</OutputProfile>
 					</OutputProfiles>
 					<Providers>
-						<!-- <OVT /> -->
-						<!-- <WebRTC /> -->
 						<RTMP />
-						<SRT />
-						<!-- <RTSPPull /> -->
 					</Providers>
 					<Publishers>
-						<SessionLoadBalancingThreadCount>8</SessionLoadBalancingThreadCount>
-						<!-- <OVT /> -->
+						<AppWorkerCount>1</AppWorkerCount>
+						<StreamWorkerCount>2</StreamWorkerCount>
+
 						<HLS>
 							<SegmentDuration>1</SegmentDuration>
-							<SegmentCount>2</SegmentCount>
+							<SegmentCount>4</SegmentCount>
 							<CrossDomains>
 								<Url>*</Url>
 							</CrossDomains>

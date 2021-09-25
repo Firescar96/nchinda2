@@ -19,6 +19,13 @@ const { SimplePeer } = window;
 })
 class WebRTCClient {
   created() {
+    this.selectedStream = null;
+
+    this.setupWebRTCConnection();
+    this.setupMediaSources();
+  }
+
+  setupWebRTCConnection() {
     this.connection = new SimplePeer({
       initiator: false,
       trickle: false,
@@ -44,7 +51,7 @@ class WebRTCClient {
       });
     });
 
-    this.connection.on('error', (err) => console.log('websocket error', err));
+    this.connection.on('error', () => this.setupWebRTCConnection());
 
     this.connection.on('signal', (signal) => {
       const rawdata = JSON.stringify({
@@ -53,9 +60,6 @@ class WebRTCClient {
       });
       this.websocketConnection.send(rawdata);
     });
-
-    this.selectedStream = null;
-    this.setupMediaSources();
   }
 
   get audioInputEnabled() {

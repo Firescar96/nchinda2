@@ -104,7 +104,6 @@ class MessagingManager {
     if(message.flag === 'seekToLive') this.videoController.switchToLive();
     if(message.flag === 'seekToUnlive') this.videoController.switchToUnlive();
 
-    console.log('message', message);
     if(message.flag == 'syncResponse') {
       if(this.videoController.isLiveVideo !== message.isLiveVideo) {
         if(message.isLiveVideo) this.videoController.switchToLive();
