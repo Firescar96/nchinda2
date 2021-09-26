@@ -3,7 +3,6 @@ import VueRouter from 'vue-router';
 import marked from 'marked';
 import vSelect from 'vue-select';
 import { OverlayScrollbarsPlugin } from 'overlayscrollbars-vue';
-import 'simple-peer/simplepeer.min.js';
 import VueCompositionAPI from '@vue/composition-api';
 import { TooltipPlugin } from 'bootstrap-vue';
 import App from './App';

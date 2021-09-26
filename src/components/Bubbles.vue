@@ -51,8 +51,8 @@ import Component from 'vue-class-component';
 import {
   select, interval, forceSimulation, forceY,
 } from 'd3';
-import { loadPosts } from '@/utility';
 import videojs from 'video.js';
+import { loadPosts } from '@/utility';
 
 //this way bubble is only imported once via one network request
 import bubbleImg from '@/../public/images/bubble.png';
@@ -81,16 +81,6 @@ class Bubbles {
 
   async created() {
     await loadPosts('bubbles', NUM_POSTS, this);
-
-    const player = videojs(this.$refs.backgroundVid);
-    if(this.$route.query.video) {
-      player.src({
-        src: `/videos/${this.$route.query.video}/master.m3u8`,
-        type: 'application/x-mpegURL',
-        overrideNative: true,
-      });
-      this.focusVideo = true;
-    }
   }
 
   selectPost(index) {
@@ -135,6 +125,20 @@ class Bubbles {
 
   mounted() {
     if(this.bubbleGenerator) return;
+    const player = videojs(this.$refs.backgroundVid);
+
+    if(this.$route.query.video) {
+      player.src({
+        src: `/videos/${this.$route.query.video}/master.m3u8`,
+        type: 'application/x-mpegURL',
+        overrideNative: true,
+      });
+      this.focusVideo = true;
+    } else {
+      player.src('https://ia902902.us.archive.org/25/items/Kissing/Kissing_512kb.mp4');
+      player.play();
+    }
+
     this.simulation = forceSimulation(this.bubbles);
 
     this.bubbleGenerator = interval(() => {

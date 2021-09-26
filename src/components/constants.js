@@ -1,4 +1,0 @@
-export default {
-  SKIP_BACK_SECONDS: 10,
-  SKIP_FORWARD_SECONDS: 30,
-};
