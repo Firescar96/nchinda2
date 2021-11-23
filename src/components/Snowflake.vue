@@ -18,7 +18,7 @@
       </div>
       <overlay-scrollbars id="postContentBox">
         <div id="postContent" ref="postContent">
-          <div id="journalBackground" ref="journalBackground" />
+          <div id="journalBackground" />
           <div id="journalForeground" v-html="selectedPost.fullText" />
         </div>
       </overlay-scrollbars>
@@ -41,23 +41,6 @@ class Snowflake {
       selectedPost: null,
       snowflakes: new Array(12),
     };
-  }
-
-  @Watch('selectedPost')
-  async updateBlankLines() {
-    if(!this.selectedPost) return;
-    //wait for the dom to rerender
-    await this.$nextTick();
-
-    //calculate how many spacer lines are needed
-    //number of pixels to space from top empirically chosen as 83
-    this.$refs.journalBackground.style.marginTop = '83px';
-    const numSpacers = (this.$refs.journalBackground.getBoundingClientRect().height) / 40 - 1;
-    for(let i = 0; i < numSpacers; i++) {
-      const div = document.createElement('div');
-      div.classList.add('spacer');
-      this.$refs.journalBackground.append(div);
-    }
   }
 
   async created() {
@@ -136,11 +119,11 @@ class Snowflake {
     #postContent {
       margin: auto;
       max-width: 960px;
-      width: 80%;
       min-height: 100%;
-      text-align: left;
-      padding-left: 2px;
+      padding-left: 10px;
+      padding-right: 10px;
       border-left: double 5px black;
+      border-right: double 5px black;
       position: relative;
       min-height: 100vh;
 
@@ -204,16 +187,12 @@ class Snowflake {
 
     #journalBackground {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: none;
-
-      .spacer {
-        height: 39px;
-        border-bottom: solid 1px black;
-      }
+      width: 100%;
+      height: 100%;
+      background: url('./gridpaper.png');
+      background-repeat: repeat repeat;
+      background-size: 50%;
+      opacity: 50%;
     }
   }
 

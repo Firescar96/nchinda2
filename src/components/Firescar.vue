@@ -35,7 +35,7 @@
 import Component from 'vue-class-component';
 import { loadPosts } from '@/utility';
 
-const NUM_POSTS = 10;
+const NUM_POSTS = 11;
 export default
 @Component()
 class Firescar {
